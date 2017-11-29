@@ -1,4 +1,6 @@
 package oneway.nn.networks {
+	import oneway.nn.ConnectionType;
+	import oneway.nn.GateType;
 	import oneway.nn.Layer;
 	import oneway.nn.LayerConnection;
 	import oneway.nn.NetWork;
@@ -16,7 +18,7 @@ package oneway.nn.networks {
 			
 			var last:* = args.pop();
 			var outputs:int
-			var option:Object = {peepholes: Layer.connectionType.ALL_TO_ALL, hiddenToHidden: false, outputToHidden: false, outputToGates: false, inputToOutput: true};
+			var option:Object = {peepholes: ConnectionType.ALL_TO_ALL, hiddenToHidden: false, outputToHidden: false, outputToGates: false, inputToOutput: true};
 			if (typeof last != 'number') {
 				outputs = args.pop();
 				if (last.hasOwnProperty('peepholes'))
@@ -80,7 +82,7 @@ package oneway.nn.networks {
 				
 				// hidden to hidden recurrent connection
 				if (option.hiddenToHidden)
-					memoryCell.project(memoryCell, Layer.connectionType.ALL_TO_ELSE);
+					memoryCell.project(memoryCell, ConnectionType.ALL_TO_ELSE);
 				
 				// out to hidden recurrent connection
 				if (option.outputToHidden)
@@ -99,11 +101,11 @@ package oneway.nn.networks {
 				memoryCell.project(outputGate, option.peepholes);
 				
 				// gates
-				inputGate.gate(input, Layer.gateType.INPUT);
-				forgetGate.gate(self, Layer.gateType.ONE_TO_ONE);
-				outputGate.gate(output, Layer.gateType.OUTPUT);
+				inputGate.gate(input, GateType.INPUT);
+				forgetGate.gate(self, GateType.ONE_TO_ONE);
+				outputGate.gate(output, GateType.OUTPUT);
 				if (previous != null)
-					inputGate.gate(cell, Layer.gateType.INPUT);
+					inputGate.gate(cell, GateType.INPUT);
 				
 				previous = memoryCell;
 			}

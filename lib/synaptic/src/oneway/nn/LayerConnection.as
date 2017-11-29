@@ -32,17 +32,17 @@ package oneway.nn {
 			
 			if (this.type == null) {
 				if (fromLayer == toLayer)
-					this.type = Layer.connectionType.ONE_TO_ONE;
+					this.type = ConnectionType.ONE_TO_ONE;
 				else
-					this.type = Layer.connectionType.ALL_TO_ALL;
+					this.type = ConnectionType.ALL_TO_ALL;
 			}
 			
-			if (this.type == Layer.connectionType.ALL_TO_ALL || this.type == Layer.connectionType.ALL_TO_ELSE) {
+			if (this.type == ConnectionType.ALL_TO_ALL || this.type == ConnectionType.ALL_TO_ELSE) {
 				for (var here:String in this.from.list) {
 					for (var there:String in this.to.list) {
 						var from:Neuron = this.from.list[here];
 						var to:Neuron = this.to.list[there];
-						if (this.type == Layer.connectionType.ALL_TO_ELSE && from == to)
+						if (this.type == ConnectionType.ALL_TO_ELSE && from == to)
 							continue;
 						var connection:Object = from.project(to, weights);
 						
@@ -51,7 +51,7 @@ package oneway.nn {
 					}
 				}
 			}
-			else if (this.type == Layer.connectionType.ONE_TO_ONE) {
+			else if (this.type == ConnectionType.ONE_TO_ONE) {
 				
 				for (var neuron:String in this.from.list) {
 					from = this.from.list[neuron];

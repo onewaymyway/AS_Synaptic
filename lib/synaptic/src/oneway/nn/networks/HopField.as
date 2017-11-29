@@ -1,4 +1,5 @@
 package oneway.nn.networks {
+	import oneway.nn.ConnectionType;
 	import oneway.nn.Layer;
 	import oneway.nn.NetWork;
 	import oneway.nn.Trainer;
@@ -13,7 +14,7 @@ package oneway.nn.networks {
 			var inputLayer:Layer = new Layer(size);
 			var outputLayer:Layer = new Layer(size);
 			
-			inputLayer.project(outputLayer, Layer.connectionType.ALL_TO_ALL);
+			inputLayer.project(outputLayer, ConnectionType.ALL_TO_ALL);
 			
 			this.set({input: inputLayer, hidden: [], output: outputLayer});
 			

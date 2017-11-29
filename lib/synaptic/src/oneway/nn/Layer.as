@@ -5,8 +5,6 @@ package oneway.nn {
 	 * @author ww
 	 */
 	public class Layer {
-		public static var connectionType:Object = {ALL_TO_ALL: "ALL TO ALL", ONE_TO_ONE: "ONE TO ONE", ALL_TO_ELSE: "ALL TO ELSE"};
-		public static var gateType:Object = {INPUT: "INPUT", OUTPUT: "OUTPUT", ONE_TO_ONE: "ONE TO ONE"};
 		
 		/**
 		 * 大小
@@ -93,7 +91,7 @@ package oneway.nn {
 		
 		public function gate(connection:LayerConnection, type:String):void {
 			
-			if (type == Layer.gateType.INPUT) {
+			if (type == GateType.INPUT) {
 				if (connection.to.size != this.size)
 					throw new Error('GATER layer and CONNECTION.TO layer must be the same size in order to gate!');
 				
@@ -107,7 +105,7 @@ package oneway.nn {
 					}
 				}
 			}
-			else if (type == Layer.gateType.OUTPUT) {
+			else if (type == GateType.OUTPUT) {
 				if (connection.from.size != this.size)
 					throw new Error('GATER layer and CONNECTION.FROM layer must be the same size in order to gate!');
 				
@@ -121,7 +119,7 @@ package oneway.nn {
 					}
 				}
 			}
-			else if (type == Layer.gateType.ONE_TO_ONE) {
+			else if (type == GateType.ONE_TO_ONE) {
 				if (connection.size != this.size)
 					throw new Error('The number of GATER UNITS must be the same as the number of CONNECTIONS to gate!');
 				
@@ -157,7 +155,7 @@ package oneway.nn {
 				}
 			}
 			if (connections == this.size * layer.size)
-				return Layer.connectionType.ALL_TO_ALL;
+				return ConnectionType.ALL_TO_ALL;
 			
 			// Check if ONE to ONE connection
 			connections = 0;
@@ -169,7 +167,7 @@ package oneway.nn {
 					connections++;
 			}
 			if (connections == this.size)
-				return Layer.connectionType.ONE_TO_ONE;
+				return ConnectionType.ONE_TO_ONE;
 		}
 		
 		public function clear():void {
