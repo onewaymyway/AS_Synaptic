@@ -1,4 +1,5 @@
 package oneway.nn.networks {
+	import oneway.nn.Connection;
 	import oneway.nn.Layer;
 	import oneway.nn.NetWork;
 	
@@ -8,30 +9,30 @@ package oneway.nn.networks {
 	 */
 	public class Liquid extends NetWork {
 		
-		public function Liquid(inputs, hidden, outputs, connections, gates) {
+		public function Liquid(inputs:int, hidden:int, outputs:int, connections:int, gates:int) {
 			super();
 			// create layers
-			var inputLayer = new Layer(inputs);
-			var hiddenLayer = new Layer(hidden);
-			var outputLayer = new Layer(outputs);
+			var inputLayer:Layer = new Layer(inputs);
+			var hiddenLayer:Layer = new Layer(hidden);
+			var outputLayer:Layer = new Layer(outputs);
 			
 			// make connections and gates randomly among the neurons
-			var neurons = hiddenLayer.neurons();
-			var connectionList = [];
+			var neurons:Array  = hiddenLayer.neurons();
+			var connectionList:Array = [];
 			
-			for (var i = 0; i < connections; i++) {
+			for (var i:int = 0; i < connections; i++) {
 				// connect two random neurons
-				var from = Math.random() * neurons.length | 0;
-				var to = Math.random() * neurons.length | 0;
-				var connection = neurons[from].project(neurons[to]);
+				var from:int = Math.random() * neurons.length | 0;
+				var to:int = Math.random() * neurons.length | 0;
+				var connection:* = neurons[from].project(neurons[to]);
 				connectionList.push(connection);
 			}
 			
-			for (var j = 0; j < gates; j++) {
+			for (var j:int = 0; j < gates; j++) {
 				// pick a random gater neuron
-				var gater = Math.random() * neurons.length | 0;
+				var gater:int = Math.random() * neurons.length | 0;
 				// pick a random connection to gate
-				var connection = Math.random() * connectionList.length | 0;
+				connection = Math.random() * connectionList.length | 0;
 				// let the gater gate the connection
 				neurons[gater].gate(connectionList[connection]);
 			}

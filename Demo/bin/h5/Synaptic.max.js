@@ -298,6 +298,7 @@ var Laya=window.Laya=(function(window,document){
 			this.size=0;
 			this.list=null;
 			this.connectedTo=null;
+			(size===void 0)&& (size=0);
 			this.size=size | 0;
 			this.list=[];
 			this.connectedTo=[];
@@ -321,9 +322,9 @@ var Laya=window.Laya=(function(window,document){
 				}
 			}
 			else {
-				for (var id in this.list){
-					var neuron=this.list[id];
-					var activation=neuron.activate();
+				for (id in this.list){
+					neuron=this.list[id];
+					activation=neuron.activate();
 					activations.push(activation);
 				}
 			}
@@ -331,7 +332,7 @@ var Laya=window.Laya=(function(window,document){
 		}
 
 		__proto.propagate=function(rate,target){
-			if (typeof target !='undefined'){
+			if (target){
 				if (target.length !=this.size)
 					throw new Error('TARGET size and LAYER size must be the same to propagate!');
 				for (var id=this.list.length-1;id >=0;id--){
@@ -340,22 +341,23 @@ var Laya=window.Laya=(function(window,document){
 				}
 			}
 			else {
-				for (var id=this.list.length-1;id >=0;id--){
-					var neuron=this.list[id];
+				for (id=this.list.length-1;id >=0;id--){
+					neuron=this.list[id];
 					neuron.propagate(rate);
 				}
 			}
 		}
 
 		__proto.project=function(layer,type,weights){
-			if (layer instanceof NetWork)
+			if ((layer instanceof oneway.nn.NetWork ))
 				layer=layer.layers.input;
-			if (layer instanceof Layer){
+			if ((layer instanceof oneway.nn.Layer )){
 				if (!this.connected(layer))
 					return new LayerConnection(this,layer,type,weights);
 			}
 			else
 			throw new Error('Invalid argument, you can only project connections to LAYERS and NETWORKS!');
+			return null;
 		}
 
 		__proto.gate=function(connection,type){
@@ -375,11 +377,11 @@ var Laya=window.Laya=(function(window,document){
 			else if (type==oneway.nn.Layer.gateType.OUTPUT){
 				if (connection.from.size !=this.size)
 					throw new Error('GATER layer and CONNECTION.FROM layer must be the same size in order to gate!');
-				for (var id in connection.from.list){
-					var neuron=connection.from.list[id];
-					var gater=this.list[id];
+				for (id in connection.from.list){
+					neuron=connection.from.list[id];
+					gater=this.list[id];
 					for (var projected in neuron.connections.projected){
-						var gated=neuron.connections.projected[projected];
+						gated=neuron.connections.projected[projected];
 						if (gated.ID in connection.connections)
 							gater.gate(gated);
 					}
@@ -388,9 +390,9 @@ var Laya=window.Laya=(function(window,document){
 			else if (type==oneway.nn.Layer.gateType.ONE_TO_ONE){
 				if (connection.size !=this.size)
 					throw new Error('The number of GATER UNITS must be the same as the number of CONNECTIONS to gate!');
-				for (var id in connection.list){
-					var gater=this.list[id];
-					var gated=connection.list[id];
+				for (id in connection.list){
+					gater=this.list[id];
+					gated=connection.list[id];
 					gater.gate(gated);
 				}
 			}
@@ -421,9 +423,9 @@ var Laya=window.Laya=(function(window,document){
 				return oneway.nn.Layer.connectionType.ALL_TO_ALL;
 			connections=0;
 			for (var neuron in this.list){
-				var from=this.list[neuron];
-				var to=layer.list[neuron];
-				var connected=from.connected(to);
+				from=this.list[neuron];
+				to=layer.list[neuron];
+				connected=from.connected(to);
 				if (connected.type=='projected')
 					connections++;
 			}
@@ -483,6 +485,15 @@ var Laya=window.Laya=(function(window,document){
 	//class oneway.nn.LayerConnection
 	var LayerConnection=(function(){
 		function LayerConnection(fromLayer,toLayer,type,weights){
+			this.ID=0;
+			this.from=null;
+			this.to=null;
+			this.selfconnection=false;
+			this.type=null;
+			this.list=null;
+			this.size=0;
+			this.gatedfrom=null;
+			this.connections=null;
 			this.ID=oneway.nn.LayerConnection.uid();
 			this.from=fromLayer;
 			this.to=toLayer;
@@ -513,9 +524,9 @@ var Laya=window.Laya=(function(window,document){
 			}
 			else if (this.type==Layer.connectionType.ONE_TO_ONE){
 				for (var neuron in this.from.list){
-					var from=this.from.list[neuron];
-					var to=this.to.list[neuron];
-					var connection=from.project(to,weights);
+					from=this.from.list[neuron];
+					to=this.to.list[neuron];
+					connection=from.project(to,weights);
 					this.connections[connection.ID]=connection;
 					this.size=this.list.push(connection);
 				}
@@ -525,7 +536,7 @@ var Laya=window.Laya=(function(window,document){
 
 		__class(LayerConnection,'oneway.nn.LayerConnection');
 		LayerConnection.uid=function(){
-			return LayerConnection.connections++;
+			return this.connections++;
 		}
 
 		LayerConnection.connections=0;
@@ -543,6 +554,7 @@ var Laya=window.Laya=(function(window,document){
 			this.layers=null;
 			this.optimized=null;
 			this.trainer=null;
+			this.cost=null;
 			if (layers){
 				this.layers={input:layers.input || null,hidden:layers.hidden || [],output:layers.output || null};
 				this.optimized=null;
@@ -623,17 +635,17 @@ var Laya=window.Laya=(function(window,document){
 				neuron=neuron.neuron;
 				optimized=neuron.optimize(optimized,layer);
 			}
-			for (var i=0;i < optimized.propagation_sentences.length;i++)
+			for (i=0;i < optimized.propagation_sentences.length;i++)
 			optimized.propagation_sentences[i].reverse();
 			optimized.propagation_sentences.reverse();
 			var hardcode='';
 			hardcode+='var F = Float64Array ? new Float64Array('+optimized.memory+') : []; ';
-			for (var i in optimized.variables)
+			for (i in optimized.variables)
 			hardcode+='F['+optimized.variables[i].id+'] = '+(optimized.variables[i].value || 0)+'; ';
 			hardcode+='var activate = function(input){\n';
-			for (var i=0;i < optimized.inputs.length;i++)
+			for (i=0;i < optimized.inputs.length;i++)
 			hardcode+='F['+optimized.inputs[i]+'] = input['+i+']; ';
-			for (var i=0;i < optimized.activation_sentences.length;i++){
+			for (i=0;i < optimized.activation_sentences.length;i++){
 				if (optimized.activation_sentences[i].length > 0){
 					for (var j=0;j < optimized.activation_sentences[i].length;j++){
 						hardcode+=optimized.activation_sentences[i][j].join(' ');
@@ -642,21 +654,21 @@ var Laya=window.Laya=(function(window,document){
 				}
 			}
 			hardcode+=' var output = []; '
-			for (var i=0;i < optimized.outputs.length;i++)
+			for (i=0;i < optimized.outputs.length;i++)
 			hardcode+='output['+i+'] = F['+optimized.outputs[i]+']; ';
 			hardcode+='return output; }; '
 			hardcode+='var propagate = function(rate, target){\n';
 			hardcode+='F['+optimized.variables.rate.id+'] = rate; ';
-			for (var i=0;i < optimized.targets.length;i++)
+			for (i=0;i < optimized.targets.length;i++)
 			hardcode+='F['+optimized.targets[i]+'] = target['+i+']; ';
-			for (var i=0;i < optimized.propagation_sentences.length;i++)
-			for (var j=0;j < optimized.propagation_sentences[i].length;j++)
+			for (i=0;i < optimized.propagation_sentences.length;i++)
+			for (j=0;j < optimized.propagation_sentences[i].length;j++)
 			hardcode+=optimized.propagation_sentences[i][j].join(' ')+' ';
 			hardcode+=' };\n';
 			hardcode+='var ownership = function(memoryBuffer){\nF = memoryBuffer;\nthis.memory = F;\n};\n';
 			hardcode+='return {\nmemory: F,\nactivate: activate,\npropagate: propagate,\nownership: ownership\n};';
 			hardcode=hardcode.split(';').join(';\n');
-			var constructor=new Function(hardcode);
+			var constructor=NNTools.createFunction(hardcode);
 			var network=constructor();
 			network.data={variables:optimized.variables,activate:optimized.activation_sentences,propagate:optimized.propagation_sentences,trace:optimized.trace_sentences,inputs:optimized.inputs,outputs:optimized.outputs,check_activation:this.activate,check_propagation:this.propagate}
 			network.reset=function (){
@@ -667,8 +679,8 @@ var Laya=window.Laya=(function(window,document){
 				}
 			}
 			this.optimized=network;
-			this.activate=network.activate;
-			this.propagate=network.propagate;
+			this["activate"]=network.activate;
+			this["propagate"]=network.propagate;
 		}
 
 		__proto.restore=function(){
@@ -701,7 +713,7 @@ var Laya=window.Laya=(function(window,document){
 				for (var input in neuron.trace.elegibility)
 				neuron.trace.elegibility[input]=getValue(neuron,'trace','elegibility',input);
 				for (var gated in neuron.trace.extended)
-				for (var input in neuron.trace.extended[gated])
+				for (input in neuron.trace.extended[gated])
 				neuron.trace.extended[gated][input]=getValue(neuron,'trace','extended',gated,input);
 				for (var j in neuron.connections.projected){
 					var connection=neuron.connections.projected[j];
@@ -717,12 +729,12 @@ var Laya=window.Laya=(function(window,document){
 			for (var i=0;i < inputLayer.length;i++){
 				neurons.push({neuron:inputLayer[i],layer:'input'});
 			}
-			for (var i=0;i < this.layers.hidden.length;i++){
+			for (i=0;i < this.layers.hidden.length;i++){
 				var hiddenLayer=this.layers.hidden[i].neurons();
 				for (var j=0;j < hiddenLayer.length;j++)
 				neurons.push({neuron:hiddenLayer[j],layer:i});
 			}
-			for (var i=0;i < outputLayer.length;i++){
+			for (i=0;i < outputLayer.length;i++){
 				neurons.push({neuron:outputLayer[i],layer:'output'});
 			}
 			return neurons;
@@ -750,6 +762,7 @@ var Laya=window.Laya=(function(window,document){
 		}
 
 		__proto.toJSON=function(ignoreTraces){
+			(ignoreTraces===void 0)&& (ignoreTraces=true);
 			this.restore();
 			var list=this.neurons();
 			var neurons=[];
@@ -764,8 +777,8 @@ var Laya=window.Laya=(function(window,document){
 				copy.squash=neuron.squash==Neuron.squash.LOGISTIC ? 'LOGISTIC' :neuron.squash==Neuron.squash.TANH ? 'TANH' :neuron.squash==Neuron.squash.IDENTITY ? 'IDENTITY' :neuron.squash==Neuron.squash.HLIM ? 'HLIM' :neuron.squash==Neuron.squash.RELU ? 'RELU' :null;
 				neurons.push(copy);
 			}
-			for (var i=0;i < list.length;i++){
-				var neuron=list[i].neuron;
+			for (i=0;i < list.length;i++){
+				neuron=list[i].neuron;
 				while (neuron.neuron)
 				neuron=neuron.neuron;
 				for (var j in neuron.connections.projected){
@@ -808,9 +821,9 @@ var Laya=window.Laya=(function(window,document){
 					}
 					else {
 						code+='    '+layerID+' -> '+layerToID+' [label = '+size+']\n';
-						for (var from in connection.gatedfrom){
-							var layerfrom=connection.gatedfrom[from].layer;
-							var layerfromID=layers.indexOf(layerfrom);
+						for (from in connection.gatedfrom){
+							layerfrom=connection.gatedfrom[from].layer;
+							layerfromID=layers.indexOf(layerfrom);
 							code+='    '+layerfromID+' -> '+layerToID+' [color = blue]\n';
 						}
 					}
@@ -827,32 +840,32 @@ var Laya=window.Laya=(function(window,document){
 			var activation='function (input) {\n';
 			for (var i=0;i < data.inputs.length;i++)
 			activation+='F['+data.inputs[i]+'] = input['+i+'];\n';
-			for (var i=0;i < data.activate.length;i++){
+			for (i=0;i < data.activate.length;i++){
 				for (var j=0;j < data.activate[i].length;j++)
 				activation+=data.activate[i][j].join('')+'\n';
 			}
 			activation+='var output = [];\n';
-			for (var i=0;i < data.outputs.length;i++)
+			for (i=0;i < data.outputs.length;i++)
 			activation+='output['+i+'] = F['+data.outputs[i]+'];\n';
 			activation+='return output;\n}';
 			var memory=activation.match(/F\[(\d+)\]/g);
 			var dimension=0;
 			var ids={};
-			for (var i=0;i < memory.length;i++){
+			for (i=0;i < memory.length;i++){
 				var tmp=memory[i].match(/\d+/)[0];
 				if (!(tmp in ids)){
 					ids[tmp]=dimension++;
 				}
 			};
 			var hardcode='F = {\n';
-			for (var i in ids)
+			for (i in ids)
 			hardcode+=ids[i]+': '+this.optimized.memory[i]+',\n';
 			hardcode=hardcode.substring(0,hardcode.length-2)+'\n};\n';
 			hardcode='var run = '+activation.replace(/F\[(\d+)]/g,function(index){
 				return 'F['+ids[index.match(/\d+/)[0]]+']'
 			}).replace('{\n','{\n'+hardcode+'')+';\n';
 			hardcode+='return run';
-			return new Function(hardcode)();
+			return NNTools.createFunction(hardcode)();
 		}
 
 		__proto.worker=function(memory,set,options){
@@ -879,7 +892,7 @@ var Laya=window.Laya=(function(window,document){
 			hardcode+='var propagate = '+this.optimized.propagate.toString()+';\n';
 			hardcode+='onmessage = function(e) {\n'+'if (e.data.action == \'startTraining\') {\n'+'train('+JSON.stringify(set)+','+JSON.stringify(workerOptions)+');\n'+'}\n'+'}';
 			var workerSourceCode=workerFunction+'\n'+hardcode;
-			var blob=new /*no*/this.Blob([workerSourceCode]);
+			var blob=new Blob([workerSourceCode]);
 			var blobURL=window.URL.createObjectURL(blob);
 			return new /*no*/this.Worker(blobURL);
 		}
@@ -889,7 +902,7 @@ var Laya=window.Laya=(function(window,document){
 		}
 
 		NetWork.getWorkerSharedFunctions=function(){
-			if (typeof oneway.nn.NetWork._SHARED_WORKER_FUNCTIONS!=='undefined')
+			if (oneway.nn.NetWork._SHARED_WORKER_FUNCTIONS)
 				return oneway.nn.NetWork._SHARED_WORKER_FUNCTIONS;
 			var train_f=Trainer.prototype.train.toString();
 			train_f=train_f.replace(/this._trainSet/g,'_trainSet');
@@ -925,8 +938,8 @@ var Laya=window.Laya=(function(window,document){
 					layers.hidden[config.layer].add(neuron);
 				}
 			}
-			for (var i=0;i < json.connections.length;i++){
-				var config=json.connections[i];
+			for (i=0;i < json.connections.length;i++){
+				config=json.connections[i];
 				var from=neurons[config.from];
 				var to=neurons[config.to];
 				var weight=config.weight;
@@ -938,6 +951,7 @@ var Laya=window.Laya=(function(window,document){
 			return new NetWork(layers);
 		}
 
+		NetWork._SHARED_WORKER_FUNCTIONS=null
 		return NetWork;
 	})()
 
@@ -955,12 +969,13 @@ var Laya=window.Laya=(function(window,document){
 			this.trace=null;
 			this.state=0;
 			this.old=NaN;
+			this.activation=NaN;
 			this.selfconnection=null;
 			this.squash=null;
 			this.neighboors=null;
 			this.bias=NaN;
 			this.derivative=NaN;
-			this.activation=Number;
+			this.label=null;
 			this.ID=oneway.nn.Neuron.uid();
 			this.connections={"inputs":{},"projected":{},"gated":{}};
 			this.error={"responsibility":0,"projected":0,"gated":0};
@@ -985,14 +1000,16 @@ var Laya=window.Laya=(function(window,document){
 			}
 			this.old=this.state;
 			this.state=this.selfconnection.gain *this.selfconnection.weight *this.state+this.bias;
-			for (var i in this.connections.inputs){
+			var i;
+			for (i in this.connections.inputs){
 				var input=this.connections.inputs[i];
 				this.state+=input.from.activation *input.weight *input.gain;
 			}
 			this.activation=this.squash(this.state);
 			this.derivative=this.squash(this.state,true);
 			var influences=[];
-			for (var id in this.trace.extended){
+			var id;
+			for (id in this.trace.extended){
 				var neuron=this.neighboors[id];
 				var influence=neuron.selfconnection.gater==this ? neuron.old :0;
 				for (var incoming in this.trace.influences[neuron.ID]){
@@ -1000,13 +1017,13 @@ var Laya=window.Laya=(function(window,document){
 				}
 				influences[neuron.ID]=influence;
 			}
-			for (var i in this.connections.inputs){
-				var input=this.connections.inputs[i];
+			for (i in this.connections.inputs){
+				input=this.connections.inputs[i];
 				this.trace.elegibility[input.ID]=this.selfconnection.gain *this.selfconnection.weight *this.trace.elegibility[input.ID]+input.gain *input.from.activation;
-				for (var id in this.trace.extended){
+				for (id in this.trace.extended){
 					var xtrace=this.trace.extended[id];
-					var neuron=this.neighboors[id];
-					var influence=influences[neuron.ID];
+					neuron=this.neighboors[id];
+					influence=influences[neuron.ID];
 					xtrace[input.ID]=neuron.selfconnection.gain *neuron.selfconnection.weight *xtrace[input.ID]+this.derivative *this.trace.elegibility[input.ID] *influence;
 				}
 			}
@@ -1077,8 +1094,8 @@ var Laya=window.Laya=(function(window,document){
 			neuron.connections.inputs[connection.ID]=connection;
 			neuron.trace.elegibility[connection.ID]=0;
 			for (var id in neuron.trace.extended){
-				var trace=neuron.trace.extended[id];
-				trace[connection.ID]=0;
+				var ttrace=neuron.trace.extended[id];
+				ttrace[connection.ID]=0;
 			}
 			return connection;
 		}
@@ -1118,15 +1135,15 @@ var Laya=window.Laya=(function(window,document){
 			}
 			for (var type in this.connections){
 				for (var connection in this.connections[type]){
-					var connection=this.connections[type][connection];
-					if (connection.to==neuron){
+					var tconnection=this.connections[type][connection];
+					if (tconnection.to==neuron){
 						result.type=type;
-						result.connection=connection;
+						result.connection=tconnection;
 						return result;
 					}
-					else if (connection.from==neuron){
+					else if (tconnection.from==neuron){
 						result.type=type;
-						result.connection=connection;
+						result.connection=tconnection;
 						return result;
 					}
 				}
@@ -1135,12 +1152,12 @@ var Laya=window.Laya=(function(window,document){
 		}
 
 		__proto.clear=function(){
-			for (var trace in this.trace.elegibility){
-				this.trace.elegibility[trace]=0;
+			for (var ttrace in this.trace.elegibility){
+				this.trace.elegibility[ttrace]=0;
 			}
-			for (var trace in this.trace.extended){
-				for (var extended in this.trace.extended[trace]){
-					this.trace.extended[trace][extended]=0;
+			for (ttrace in this.trace.extended){
+				for (var extended in this.trace.extended[ttrace]){
+					this.trace.extended[ttrace][extended]=0;
 				}
 			}
 			this.error.responsibility=this.error.projected=this.error.gated=0;
@@ -1183,15 +1200,16 @@ var Laya=window.Laya=(function(window,document){
 			allocate(trace_sentences);
 			allocate(propagation_sentences);
 			var currentLayer=layers.__count;
-			var getVar=function (){
-				var args=Array.prototype.slice.call(arguments);
+			var getVar=function (__argList){
+				var argList=arguments;
+				var args=Array.prototype.slice.call(argList);
 				if (args.length==1){
 					if (args[0]=='target'){
 						var id='target_'+targets.length;
 						targets.push(varID);
 					}
-					else;
-					var id=args[0];
+					else
+					id=args[0];
 					if (id in variables)
 						return variables[id];
 					return variables[id]={value:0,id:varID++};
@@ -1203,8 +1221,8 @@ var Laya=window.Laya=(function(window,document){
 					var unit=args.shift();
 					var prop=args.pop();
 					if (!extended)
-						var value=unit[prop];
-					var id=prop+'_';
+						value=unit[prop];
+					id=prop+'_';
 					for (var i=0;i < args.length;i++)
 					id+=args[i]+'_';
 					id+=unit.ID;
@@ -1213,8 +1231,9 @@ var Laya=window.Laya=(function(window,document){
 					return variables[id]={value:value,id:varID++};
 				}
 			};
-			var buildSentence=function (){
-				var args=Array.prototype.slice.call(arguments);
+			var buildSentence=function (__argList){
+				var argList=arguments;
+				var args=Array.prototype.slice.call(argList);
 				var store=args.pop();
 				var sentence='';
 				for (var i=0;i < args.length;i++)
@@ -1316,11 +1335,11 @@ var Laya=window.Laya=(function(window,document){
 						}
 					}
 				}
-				for (var i in this.connections.inputs){
-					var input=this.connections.inputs[i];
+				for (i in this.connections.inputs){
+					input=this.connections.inputs[i];
 					if (input.gater)
-						var input_gain=getVar(input,'gain');
-					var input_activation=getVar(input.from,'activation');
+						input_gain=getVar(input,'gain');
+					input_activation=getVar(input.from,'activation');
 					var trace=getVar(this,'trace','elegibility',input.ID,this.trace.elegibility[input.ID]);
 					if (this.selfconnected()){
 						if (this.selfconnection.gater){
@@ -1342,10 +1361,10 @@ var Laya=window.Laya=(function(window,document){
 						else
 						buildSentence(trace,' = ',input_activation,store_trace);
 					}
-					for (var id in this.trace.extended){
-						var neuron=this.neighboors[id];
-						var influence=getVar('influences['+neuron.ID+']');
-						var trace=getVar(this,'trace','elegibility',input.ID,this.trace.elegibility[input.ID]);
+					for (id in this.trace.extended){
+						neuron=this.neighboors[id];
+						influence=getVar('influences['+neuron.ID+']');
+						trace=getVar(this,'trace','elegibility',input.ID,this.trace.elegibility[input.ID]);
 						var xtrace=getVar(this,'trace','extended',neuron.ID,input.ID,this.trace.extended[neuron.ID][input.ID]);
 						if (neuron.selfconnected())
 							var neuron_self_weight=getVar(neuron.selfconnection,'weight');
@@ -1370,10 +1389,10 @@ var Laya=window.Laya=(function(window,document){
 				if (isOutput){
 					var target=getVar('target');
 					buildSentence(responsibility,' = ',target,' - ',activation,store_propagation);
-					for (var id in this.connections.inputs){
-						var input=this.connections.inputs[id];
-						var trace=getVar(this,'trace','elegibility',input.ID,this.trace.elegibility[input.ID]);
-						var input_weight=getVar(input,'weight');
+					for (id in this.connections.inputs){
+						input=this.connections.inputs[id];
+						trace=getVar(this,'trace','elegibility',input.ID,this.trace.elegibility[input.ID]);
+						input_weight=getVar(input,'weight');
 						buildSentence(input_weight,' += ',rate,' * (',responsibility,' * ',trace,')',store_propagation);
 					}
 					outputs.push(activation.id);
@@ -1381,9 +1400,9 @@ var Laya=window.Laya=(function(window,document){
 				else {
 					if (!noProjections && !noGates){
 						var error=getVar('aux');
-						for (var id in this.connections.projected){
-							var connection=this.connections.projected[id];
-							var neuron=connection.to;
+						for (id in this.connections.projected){
+							connection=this.connections.projected[id];
+							neuron=connection.to;
 							var connection_weight=getVar(connection,'weight');
 							var neuron_responsibility=getVar(neuron,'error','responsibility',neuron.error.responsibility);
 							if (connection.gater){
@@ -1396,94 +1415,94 @@ var Laya=window.Laya=(function(window,document){
 						var projected=getVar(this,'error','projected',this.error.projected);
 						buildSentence(projected,' = ',derivative,' * ',error,store_propagation);
 						buildSentence(error,' = 0',store_propagation);
-						for (var id in this.trace.extended){
-							var neuron=this.neighboors[id];
-							var influence=getVar('aux_2');
-							var neuron_old=getVar(neuron,'old');
+						for (id in this.trace.extended){
+							neuron=this.neighboors[id];
+							influence=getVar('aux_2');
+							neuron_old=getVar(neuron,'old');
 							if (neuron.selfconnection.gater==this)
 								buildSentence(influence,' = ',neuron_old,store_propagation);
 							else
 							buildSentence(influence,' = 0',store_propagation);
-							for (var input in this.trace.influences[neuron.ID]){
-								var connection=this.trace.influences[neuron.ID][input];
-								var connection_weight=getVar(connection,'weight');
+							for (input in this.trace.influences[neuron.ID]){
+								connection=this.trace.influences[neuron.ID][input];
+								connection_weight=getVar(connection,'weight');
 								var neuron_activation=getVar(connection.from,'activation');
 								buildSentence(influence,' += ',connection_weight,' * ',neuron_activation,store_propagation);
-							};
-							var neuron_responsibility=getVar(neuron,'error','responsibility',neuron.error.responsibility);
+							}
+							neuron_responsibility=getVar(neuron,'error','responsibility',neuron.error.responsibility);
 							buildSentence(error,' += ',neuron_responsibility,' * ',influence,store_propagation);
 						};
 						var gated=getVar(this,'error','gated',this.error.gated);
 						buildSentence(gated,' = ',derivative,' * ',error,store_propagation);
 						buildSentence(responsibility,' = ',projected,' + ',gated,store_propagation);
-						for (var id in this.connections.inputs){
-							var input=this.connections.inputs[id];
+						for (id in this.connections.inputs){
+							input=this.connections.inputs[id];
 							var gradient=getVar('aux');
-							var trace=getVar(this,'trace','elegibility',input.ID,this.trace.elegibility[input.ID]);
+							trace=getVar(this,'trace','elegibility',input.ID,this.trace.elegibility[input.ID]);
 							buildSentence(gradient,' = ',projected,' * ',trace,store_propagation);
-							for (var id in this.trace.extended){
-								var neuron=this.neighboors[id];
-								var neuron_responsibility=getVar(neuron,'error','responsibility',neuron.error.responsibility);
-								var xtrace=getVar(this,'trace','extended',neuron.ID,input.ID,this.trace.extended[neuron.ID][input.ID]);
+							for (id in this.trace.extended){
+								neuron=this.neighboors[id];
+								neuron_responsibility=getVar(neuron,'error','responsibility',neuron.error.responsibility);
+								xtrace=getVar(this,'trace','extended',neuron.ID,input.ID,this.trace.extended[neuron.ID][input.ID]);
 								buildSentence(gradient,' += ',neuron_responsibility,' * ',xtrace,store_propagation);
-							};
-							var input_weight=getVar(input,'weight');
+							}
+							input_weight=getVar(input,'weight');
 							buildSentence(input_weight,' += ',rate,' * ',gradient,store_propagation);
 						}
 					}
 					else if (noGates){
 						buildSentence(responsibility,' = 0',store_propagation);
-						for (var id in this.connections.projected){
-							var connection=this.connections.projected[id];
-							var neuron=connection.to;
-							var connection_weight=getVar(connection,'weight');
-							var neuron_responsibility=getVar(neuron,'error','responsibility',neuron.error.responsibility);
+						for (id in this.connections.projected){
+							connection=this.connections.projected[id];
+							neuron=connection.to;
+							connection_weight=getVar(connection,'weight');
+							neuron_responsibility=getVar(neuron,'error','responsibility',neuron.error.responsibility);
 							if (connection.gater){
-								var connection_gain=getVar(connection,'gain');
+								connection_gain=getVar(connection,'gain');
 								buildSentence(responsibility,' += ',neuron_responsibility,' * ',connection_gain,' * ',connection_weight,store_propagation);
 							}
 							else
 							buildSentence(responsibility,' += ',neuron_responsibility,' * ',connection_weight,store_propagation);
 						}
 						buildSentence(responsibility,' *= ',derivative,store_propagation);
-						for (var id in this.connections.inputs){
-							var input=this.connections.inputs[id];
-							var trace=getVar(this,'trace','elegibility',input.ID,this.trace.elegibility[input.ID]);
-							var input_weight=getVar(input,'weight');
+						for (id in this.connections.inputs){
+							input=this.connections.inputs[id];
+							trace=getVar(this,'trace','elegibility',input.ID,this.trace.elegibility[input.ID]);
+							input_weight=getVar(input,'weight');
 							buildSentence(input_weight,' += ',rate,' * (',responsibility,' * ',trace,')',store_propagation);
 						}
 					}
 					else if (noProjections){
 						buildSentence(responsibility,' = 0',store_propagation);
-						for (var id in this.trace.extended){
-							var neuron=this.neighboors[id];
-							var influence=getVar('aux');
-							var neuron_old=getVar(neuron,'old');
+						for (id in this.trace.extended){
+							neuron=this.neighboors[id];
+							influence=getVar('aux');
+							neuron_old=getVar(neuron,'old');
 							if (neuron.selfconnection.gater==this)
 								buildSentence(influence,' = ',neuron_old,store_propagation);
 							else
 							buildSentence(influence,' = 0',store_propagation);
-							for (var input in this.trace.influences[neuron.ID]){
-								var connection=this.trace.influences[neuron.ID][input];
-								var connection_weight=getVar(connection,'weight');
-								var neuron_activation=getVar(connection.from,'activation');
+							for (input in this.trace.influences[neuron.ID]){
+								connection=this.trace.influences[neuron.ID][input];
+								connection_weight=getVar(connection,'weight');
+								neuron_activation=getVar(connection.from,'activation');
 								buildSentence(influence,' += ',connection_weight,' * ',neuron_activation,store_propagation);
-							};
-							var neuron_responsibility=getVar(neuron,'error','responsibility',neuron.error.responsibility);
+							}
+							neuron_responsibility=getVar(neuron,'error','responsibility',neuron.error.responsibility);
 							buildSentence(responsibility,' += ',neuron_responsibility,' * ',influence,store_propagation);
 						}
 						buildSentence(responsibility,' *= ',derivative,store_propagation);
-						for (var id in this.connections.inputs){
-							var input=this.connections.inputs[id];
-							var gradient=getVar('aux');
+						for (id in this.connections.inputs){
+							input=this.connections.inputs[id];
+							gradient=getVar('aux');
 							buildSentence(gradient,' = 0',store_propagation);
-							for (var id in this.trace.extended){
-								var neuron=this.neighboors[id];
-								var neuron_responsibility=getVar(neuron,'error','responsibility',neuron.error.responsibility);
-								var xtrace=getVar(this,'trace','extended',neuron.ID,input.ID,this.trace.extended[neuron.ID][input.ID]);
+							for (id in this.trace.extended){
+								neuron=this.neighboors[id];
+								neuron_responsibility=getVar(neuron,'error','responsibility',neuron.error.responsibility);
+								xtrace=getVar(this,'trace','extended',neuron.ID,input.ID,this.trace.extended[neuron.ID][input.ID]);
 								buildSentence(gradient,' += ',neuron_responsibility,' * ',xtrace,store_propagation);
-							};
-							var input_weight=getVar(input,'weight');
+							}
+							input_weight=getVar(input,'weight');
 							buildSentence(input_weight,' += ',rate,' * ',gradient,store_propagation);
 						}
 					}
@@ -1506,6 +1525,32 @@ var Laya=window.Laya=(function(window,document){
 		['squash',function(){return this.squash=Squash;}
 		]);
 		return Neuron;
+	})()
+
+
+	/**
+	*...
+	*@author ww
+	*/
+	//class oneway.nn.NNTools
+	var NNTools=(function(){
+		function NNTools(){}
+		__class(NNTools,'oneway.nn.NNTools');
+		NNTools.createFunction=function(code){
+			return new Function(code);
+		}
+
+		NNTools.now=function(){
+			return Date.now();
+		}
+
+		NNTools.bind=function(fun,scope){
+			var rst=fun;
+			rst=fun.bind(scope);;
+			return rst;
+		}
+
+		return NNTools;
 	})()
 
 
@@ -1561,11 +1606,12 @@ var Laya=window.Laya=(function(window,document){
 	var Trainer=(function(){
 		function Trainer(network,options){
 			this.network=null;
-			this.rate=NaN;
+			this.rate=null;
 			this.iterations=0;
 			this.error=NaN;
 			this.cost=null;
 			this.crossValidate=null;
+			this.schedule=null;
 			options=options || {};
 			this.network=network;
 			this.rate=options.rate ||.2;
@@ -1584,7 +1630,7 @@ var Laya=window.Laya=(function(window,document){
 			var currentRate;
 			var cost=options && options.cost || this.cost || oneway.nn.Trainer.cost.MSE;
 			var crossValidate=false,testSet,trainSet;
-			var start=Date.now();
+			var start=NNTools.now();
 			if (options){
 				if (options.iterations)
 					this.iterations=options.iterations;
@@ -1611,7 +1657,7 @@ var Laya=window.Laya=(function(window,document){
 				}
 			}
 			currentRate=this.rate;
-			if (Array.isArray(this.rate)){
+			if ((this.rate instanceof Array)){
 				var bucketSize=Math.floor(this.iterations / this.rate.length);
 			}
 			if (crossValidate){
@@ -1647,7 +1693,7 @@ var Laya=window.Laya=(function(window,document){
 				lastError=error;
 				if (options){
 					if (this.schedule && this.schedule.every && iterations % this.schedule.every==0)
-						abort=this.schedule.do({error:error,iterations:iterations,rate:currentRate});
+						abort=this.schedule["do"]({error:error,iterations:iterations,rate:currentRate});
 					else if (options.log && iterations % options.log==0){
 						console.log('iterations',iterations,'error',error,'rate',currentRate);
 					};
@@ -1655,12 +1701,12 @@ var Laya=window.Laya=(function(window,document){
 						Trainer.shuffleInplace(set);
 				}
 			};
-			var results={error:error,iterations:iterations,time:Date.now()-start};
+			var results={error:error,iterations:iterations,time:NNTools.now()-start};
 			return results;
 		}
 
 		__proto.trainAsync=function(set,options){
-			var train=this.workerTrain.bind(this);
+			var train=NNTools.bind(this.workerTrain,this);
 			return new Promise(function(resolve,reject){
 				try {
 					train(set,resolve,options,true)
@@ -1687,7 +1733,7 @@ var Laya=window.Laya=(function(window,document){
 			var error=0;
 			var input,output,target;
 			var cost=options && options.cost || this.cost || oneway.nn.Trainer.cost.MSE;
-			var start=Date.now();
+			var start=NNTools.now();
 			for (var i=0;i < set.length;i++){
 				input=set[i].input;
 				target=set[i].output;
@@ -1695,7 +1741,7 @@ var Laya=window.Laya=(function(window,document){
 				error+=cost(target,output);
 			}
 			error /=set.length;
-			var results={error:error,time:Date.now()-start};
+			var results={error:error,time:NNTools.now()-start};
 			return results;
 		}
 
@@ -1720,8 +1766,8 @@ var Laya=window.Laya=(function(window,document){
 					case 'log':
 						console.log(e.data.message);
 					case 'schedule':
-						if (options && options.schedule && typeof options.schedule.do==='function'){
-							var scheduled=options.schedule.do
+						if (options && options.schedule && typeof options.schedule["do"]==='function'){
+							var scheduled=options.schedule["do"];
 							scheduled(e.data.message)
 						}
 						break ;
@@ -1769,7 +1815,7 @@ var Laya=window.Laya=(function(window,document){
 					return false;
 				return true;
 			};
-			var start=Date.now();
+			var start=NNTools.now();
 			while (trial < iterations && (success < criterion || trial % 1000 !=0)){
 				var sequence=[],sequenceLength=length-prompts.length;
 				for (i=0;i < sequenceLength;i++){
@@ -1822,11 +1868,11 @@ var Laya=window.Laya=(function(window,document){
 				success=correct / divideError;
 				error /=length;
 				if (log && trial % log==0)
-					console.log('iterations:',trial,' success:',success,' correct:',correct,' time:',Date.now()-start,' error:',error);
-				if (schedule.do && schedule.every && trial % schedule.every==0)
-					schedule.do({iterations:trial,success:success,error:error,time:Date.now()-start,correct:correct});
+					console.log('iterations:',trial,' success:',success,' correct:',correct,' time:',NNTools.now()-start,' error:',error);
+				if (schedule["do"] && schedule.every && trial % schedule.every==0)
+					schedule["do"]({iterations:trial,success:success,error:error,time:NNTools.now()-start,correct:correct});
 			}
-			return {iterations:trial,success:success,error:error,time:Date.now()-start}
+			return {iterations:trial,success:success,error:error,time:NNTools.now()-start}
 		}
 
 		__proto.ERG=function(options){
@@ -1922,7 +1968,7 @@ var Laya=window.Laya=(function(window,document){
 			var iteration=0;
 			var error=1;
 			var table={'B':0,'P':1,'T':2,'X':3,'S':4,'E':5};
-			var start=Date.now();
+			var start=NNTools.now();
 			while (iteration < iterations && error > criterion){
 				var i=0;
 				error=0;
@@ -1948,10 +1994,10 @@ var Laya=window.Laya=(function(window,document){
 				error /=sequence.length;
 				iteration++;
 				if (iteration % log==0){
-					console.log('iterations:',iteration,' time:',Date.now()-start,' error:',error);
+					console.log('iterations:',iteration,' time:',NNTools.now()-start,' error:',error);
 				}
 			}
-			return {iterations:iteration,error:error,time:Date.now()-start,test:test,generate:generate}
+			return {iterations:iteration,error:error,time:NNTools.now()-start,test:test,generate:generate}
 		}
 
 		__proto.timingTask=function(options){
@@ -1998,7 +2044,7 @@ var Laya=window.Laya=(function(window,document){
 		}
 
 		Trainer.shuffleInplace=function(o){
-			for (var j,x,i=o.length;i;j=Math.floor(Math.random()*i),x=o[--i],o[i]=o[j],o[j]=x);
+			for (var j=0,x=0,i=o.length;i;j=Math.floor(Math.random()*i),x=o[--i],o[i]=o[j],o[j]=x);
 			return o;
 		}
 
@@ -2052,6 +2098,5 @@ var Laya=window.Laya=(function(window,document){
 
 
 /*
-1 file:///D:/machinelearning/AS_Synaptic.git/trunk/lib/synaptic/src/oneway/nn/NetWork.as (465):warning:Blob This variable is not defined.
-2 file:///D:/machinelearning/AS_Synaptic.git/trunk/lib/synaptic/src/oneway/nn/NetWork.as (468):warning:Worker This variable is not defined.
+1 file:///D:/machinelearning/AS_Synaptic.git/trunk/lib/synaptic/src/oneway/nn/NetWork.as (469):warning:Worker This variable is not defined.
 */

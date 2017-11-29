@@ -17,6 +17,7 @@
   <classpaths>
     <class path="src" />
     <class path="..\lib\synaptic\src" />
+    <class path="..\lib\synaptic\jsc" />
   </classpaths>
   <!-- Build options -->
   <build>

@@ -1,5 +1,6 @@
 package oneway.nn.networks {
 	import oneway.nn.Layer;
+	import oneway.nn.LayerConnection;
 	import oneway.nn.NetWork;
 	
 	/**
@@ -8,15 +9,16 @@ package oneway.nn.networks {
 	 */
 	public class LSTM extends NetWork {
 		
-		public function LSTM() {
-			var args = Array.prototype.slice.call(arguments); // convert arguments to array
+		public function LSTM(...argList) {
+			var args:Array = Array.prototype.slice.call(argList); // convert arguments to array
 			if (args.length < 3)
 				throw new Error("not enough layers (minimum 3) !!");
 			
-			var last = args.pop();
-			var option = {peepholes: Layer.connectionType.ALL_TO_ALL, hiddenToHidden: false, outputToHidden: false, outputToGates: false, inputToOutput: true};
+			var last:* = args.pop();
+			var outputs:int
+			var option:Object = {peepholes: Layer.connectionType.ALL_TO_ALL, hiddenToHidden: false, outputToHidden: false, outputToGates: false, inputToOutput: true};
 			if (typeof last != 'number') {
-				var outputs = args.pop();
+				outputs = args.pop();
 				if (last.hasOwnProperty('peepholes'))
 					option.peepholes = last.peepholes;
 				if (last.hasOwnProperty('hiddenToHidden'))
@@ -29,27 +31,27 @@ package oneway.nn.networks {
 					option.inputToOutput = last.inputToOutput;
 			}
 			else {
-				var outputs = last;
+				outputs = last;
 			}
 			
-			var inputs = args.shift();
-			var layers = args;
+			var inputs:int = args.shift();
+			var layers:Array = args;
 			
-			var inputLayer = new Layer(inputs);
-			var hiddenLayers = [];
-			var outputLayer = new Layer(outputs);
+			var inputLayer:Layer = new Layer(inputs);
+			var hiddenLayers:Array = [];
+			var outputLayer:Layer = new Layer(outputs);
 			
-			var previous = null;
+			var previous:* = null;
 			
 			// generate layers
-			for (var i = 0; i < layers.length; i++) {
+			for (var i:int = 0; i < layers.length; i++) {
 				// generate memory blocks (memory cell and respective gates)
-				var size = layers[i];
+				var size:int = layers[i];
 				
-				var inputGate = new Layer(size).set({bias: 1});
-				var forgetGate = new Layer(size).set({bias: 1});
-				var memoryCell = new Layer(size);
-				var outputGate = new Layer(size).set({bias: 1});
+				var inputGate:Layer = new Layer(size).set({bias: 1});
+				var forgetGate:Layer = new Layer(size).set({bias: 1});
+				var memoryCell:Layer = new Layer(size);
+				var outputGate:Layer = new Layer(size).set({bias: 1});
 				
 				hiddenLayers.push(inputGate);
 				hiddenLayers.push(forgetGate);
@@ -57,24 +59,24 @@ package oneway.nn.networks {
 				hiddenLayers.push(outputGate);
 				
 				// connections from input layer
-				var input = inputLayer.project(memoryCell);
+				var input:LayerConnection = inputLayer.project(memoryCell);
 				inputLayer.project(inputGate);
 				inputLayer.project(forgetGate);
 				inputLayer.project(outputGate);
 				
 				// connections from previous memory-block layer to this one
 				if (previous != null) {
-					var cell = previous.project(memoryCell);
+					var cell:* = previous.project(memoryCell);
 					previous.project(inputGate);
 					previous.project(forgetGate);
 					previous.project(outputGate);
 				}
 				
 				// connections from memory cell
-				var output = memoryCell.project(outputLayer);
+				var output:* = memoryCell.project(outputLayer);
 				
 				// self-connection
-				var self = memoryCell.project(memoryCell);
+				var self:* = memoryCell.project(memoryCell);
 				
 				// hidden to hidden recurrent connection
 				if (option.hiddenToHidden)

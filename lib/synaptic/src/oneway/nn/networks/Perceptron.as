@@ -11,24 +11,24 @@ package oneway.nn.networks {
 		
 		public function Perceptron(...argList) {
 			super();
-			var args = Array.prototype.slice.call(argList); // convert arguments to Array
+			var args:Array = Array.prototype.slice.call(argList); // convert arguments to Array
 			if (args.length < 3)
 				throw new Error('not enough layers (minimum 3) !!');
 			
-			var inputs = args.shift(); // first argument
-			var outputs = args.pop(); // last argument
-			var layers = args; // all the arguments in the middle
+			var inputs:int = args.shift(); // first argument
+			var outputs:int = args.pop(); // last argument
+			var layers:Array = args; // all the arguments in the middle
 			
-			var input = new Layer(inputs);
-			var hidden = [];
-			var output = new Layer(outputs);
+			var input:Layer = new Layer(inputs);
+			var hidden:Array = [];
+			var output:Layer = new Layer(outputs);
 			
-			var previous = input;
+			var previous:Layer = input;
 			
 			// generate hidden layers
-			for (var i = 0; i < layers.length; i++) {
-				var size = layers[i];
-				var layer = new Layer(size);
+			for (var i:int = 0; i < layers.length; i++) {
+				var size:int = layers[i];
+				var layer:Layer = new Layer(size);
 				hidden.push(layer);
 				previous.project(layer);
 				previous = layer;

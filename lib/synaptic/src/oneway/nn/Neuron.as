@@ -6,7 +6,7 @@ package oneway.nn {
 	 */
 	public class Neuron {
 		public static var neurons:int = 0;
-		public static var squash = Squash;
+		public static var squash:Object = Squash;
 		public static function uid():int {
 			return neurons++;
 		}
@@ -21,12 +21,13 @@ package oneway.nn {
 		public var trace:Object;
 		public var state:int;
 		public var old:Number;
-		public var activation = Number;
+		public var activation:Number;
 		public var selfconnection:Connection;
 		public var squash:Function;
 		public var neighboors:Object;
 		public var bias:Number;
 		public var derivative:Number;
+		public var label:String;
 		
 		public function Neuron() {
 			this.ID = Neuron.uid();
@@ -45,7 +46,7 @@ package oneway.nn {
 		
 		public function activate(input:* = null):Number {
 			if (input != null) {
-				this.activation = input;
+				this.activation = input as Number;
 				this.derivative = 0;
 				this.bias = 0;
 				return this.activation;
@@ -56,9 +57,10 @@ package oneway.nn {
 			
 // eq. 15
 			this.state = this.selfconnection.gain * this.selfconnection.weight * this.state + this.bias;
+			var i:String;
 			
-			for (var i in this.connections.inputs) {
-				var input = this.connections.inputs[i];
+			for (i in this.connections.inputs) {
+				var input:Object = this.connections.inputs[i];
 				this.state += input.from.activation * input.weight * input.gain;
 			}
 			
@@ -69,32 +71,33 @@ package oneway.nn {
 			this.derivative = this.squash(this.state, true);
 			
 			// update traces
-			var influences = [];
-			for (var id in this.trace.extended) {
+			var influences:Array = [];
+			var id:String;
+			for (id in this.trace.extended) {
 				// extended elegibility trace
-				var neuron = this.neighboors[id];
+				var neuron:Neuron = this.neighboors[id];
 				
 				// if gated neuron's selfconnection is gated by this unit, the influence keeps track of the neuron's old state
-				var influence = neuron.selfconnection.gater == this ? neuron.old : 0;
+				var influence:Number = neuron.selfconnection.gater == this ? neuron.old : 0;
 				
 				// index runs over all the incoming connections to the gated neuron that are gated by this unit
-				for (var incoming in this.trace.influences[neuron.ID]) { // captures the effect that has an input connection to this unit, on a neuron that is gated by this unit
+				for (var incoming:String in this.trace.influences[neuron.ID]) { // captures the effect that has an input connection to this unit, on a neuron that is gated by this unit
 					influence += this.trace.influences[neuron.ID][incoming].weight * this.trace.influences[neuron.ID][incoming].from.activation;
 				}
 				influences[neuron.ID] = influence;
 			}
 			
-			for (var i in this.connections.inputs) {
-				var input = this.connections.inputs[i];
+			for (i in this.connections.inputs) {
+				input = this.connections.inputs[i];
 				
 				// elegibility trace - Eq. 17
 				this.trace.elegibility[input.ID] = this.selfconnection.gain * this.selfconnection.weight * this.trace.elegibility[input.ID] + input.gain * input.from.activation;
 				
-				for (var id in this.trace.extended) {
+				for (id in this.trace.extended) {
 					// extended elegibility trace
-					var xtrace = this.trace.extended[id];
-					var neuron = this.neighboors[id];
-					var influence = influences[neuron.ID];
+					var xtrace:Object = this.trace.extended[id];
+					neuron = this.neighboors[id];
+					influence = influences[neuron.ID];
 					
 					// eq. 18
 					xtrace[input.ID] = neuron.selfconnection.gain * neuron.selfconnection.weight * xtrace[input.ID] + this.derivative * this.trace.elegibility[input.ID] * influence;
@@ -102,7 +105,7 @@ package oneway.nn {
 			}
 			
 			//  update gated connection's gains
-			for (var connection in this.connections.gated) {
+			for (var connection:String in this.connections.gated) {
 				this.connections.gated[connection].gain = this.activation;
 			}
 			
@@ -141,7 +144,7 @@ package oneway.nn {
 				// error responsibilities from all the connections gated by this neuron
 				for (id in this.trace.extended) {
 					neuron = this.neighboors[id]; // gated neuron
-					var influence = neuron.selfconnection.gater == this ? neuron.old : 0; // if gated neuron's selfconnection is gated by this neuron
+					var influence:Number = neuron.selfconnection.gater == this ? neuron.old : 0; // if gated neuron's selfconnection is gated by this neuron
 					
 					// index runs over all the connections to the gated neuron that are gated by this neuron
 					for (input in this.trace.influences[id]) { // captures the effect that the input connection of this neuron have, on a neuron which its input/s is/are gated by this neuron
@@ -186,7 +189,7 @@ package oneway.nn {
 			}
 			
 			// check if connection already exists
-			var connected = this.connected(neuron);
+			var connected:Object = this.connected(neuron);
 			if (connected && connected.type == 'projected') {
 				// update connection
 				if (typeof weight != 'undefined')
@@ -196,7 +199,7 @@ package oneway.nn {
 			}
 			else {
 				// create a new connection
-				var connection = new Connection(this, neuron, weight);
+				var connection:Connection = new Connection(this, neuron, weight);
 			}
 			
 			// reference all the connections and traces
@@ -205,9 +208,9 @@ package oneway.nn {
 			neuron.connections.inputs[connection.ID] = connection;
 			neuron.trace.elegibility[connection.ID] = 0;
 			
-			for (var id in neuron.trace.extended) {
-				var trace = neuron.trace.extended[id];
-				trace[connection.ID] = 0;
+			for (var id:String in neuron.trace.extended) {
+				var ttrace:Object = neuron.trace.extended[id];
+				ttrace[connection.ID] = 0;
 			}
 			
 			return connection;
@@ -217,13 +220,13 @@ package oneway.nn {
 			// add connection to gated list
 			this.connections.gated[connection.ID] = connection;
 			
-			var neuron = connection.to;
+			var neuron:Neuron = connection.to;
 			if (!(neuron.ID in this.trace.extended)) {
 				// extended trace
 				this.neighboors[neuron.ID] = neuron;
-				var xtrace = this.trace.extended[neuron.ID] = {};
-				for (var id in this.connections.inputs) {
-					var input = this.connections.inputs[id];
+				var xtrace:Object = this.trace.extended[neuron.ID] = {};
+				for (var id:String in this.connections.inputs) {
+					var input:Object = this.connections.inputs[id];
 					xtrace[input.ID] = 0;
 				}
 			}
@@ -241,8 +244,8 @@ package oneway.nn {
 			return this.selfconnection.weight !== 0;
 		}
 		
-		public function connected(neuron):Boolean {
-			var result = {type: null, connection: false};
+		public function connected(neuron:Neuron):* {
+			var result:Object = {type: null, connection: false};
 			
 			if (this == neuron) {
 				if (this.selfconnected()) {
@@ -254,17 +257,17 @@ package oneway.nn {
 					return false;
 			}
 			
-			for (var type in this.connections) {
-				for (var connection in this.connections[type]) {
-					var connection = this.connections[type][connection];
-					if (connection.to == neuron) {
+			for (var type:String in this.connections) {
+				for (var connection:String in this.connections[type]) {
+					var tconnection:Object = this.connections[type][connection];
+					if (tconnection.to == neuron) {
 						result.type = type;
-						result.connection = connection;
+						result.connection = tconnection;
 						return result;
 					}
-					else if (connection.from == neuron) {
+					else if (tconnection.from == neuron) {
 						result.type = type;
-						result.connection = connection;
+						result.connection = tconnection;
 						return result;
 					}
 				}
@@ -274,13 +277,13 @@ package oneway.nn {
 		}
 		
 		public function clear():void {
-			for (var trace in this.trace.elegibility) {
-				this.trace.elegibility[trace] = 0;
+			for (var ttrace:String in this.trace.elegibility) {
+				this.trace.elegibility[ttrace] = 0;
 			}
 			
-			for (var trace in this.trace.extended) {
-				for (var extended in this.trace.extended[trace]) {
-					this.trace.extended[trace][extended] = 0;
+			for (ttrace in this.trace.extended) {
+				for (var extended:String in this.trace.extended[ttrace]) {
+					this.trace.extended[ttrace][extended] = 0;
 				}
 			}
 			
@@ -290,8 +293,8 @@ package oneway.nn {
 		public function reset():void {
 			this.clear();
 			
-			for (var type in this.connections) {
-				for (var connection in this.connections[type]) {
+			for (var type:String in this.connections) {
+				for (var connection:String in this.connections[type]) {
 					this.connections[type][connection].weight = Math.random() * .2 - .1;
 				}
 			}
@@ -300,26 +303,26 @@ package oneway.nn {
 			this.old = this.state = this.activation = 0;
 		}
 		
-		public function optimize(optimized, layer):Object {
+		public function optimize(optimized:Object, layer:String):Object {
 			
 			optimized = optimized || {};
-			var store_activation = [];
-			var store_trace = [];
-			var store_propagation = [];
-			var varID = optimized.memory || 0;
-			var neurons = optimized.neurons || 1;
-			var inputs = optimized.inputs || [];
-			var targets = optimized.targets || [];
-			var outputs = optimized.outputs || [];
-			var variables = optimized.variables || {};
-			var activation_sentences = optimized.activation_sentences || [];
-			var trace_sentences = optimized.trace_sentences || [];
-			var propagation_sentences = optimized.propagation_sentences || [];
-			var layers = optimized.layers || {__count: 0, __neuron: 0};
+			var store_activation:Array = [];
+			var store_trace:Array = [];
+			var store_propagation:Array = [];
+			var varID:int = optimized.memory || 0;
+			var neurons:int = optimized.neurons || 1;
+			var inputs:Array = optimized.inputs || [];
+			var targets:Array = optimized.targets || [];
+			var outputs:Array = optimized.outputs || [];
+			var variables:Object = optimized.variables || {};
+			var activation_sentences:Array = optimized.activation_sentences || [];
+			var trace_sentences:Array = optimized.trace_sentences || [];
+			var propagation_sentences:Array = optimized.propagation_sentences || [];
+			var layers:Object = optimized.layers || {__count: 0, __neuron: 0};
 			
 			// allocate sentences
-			var allocate = function(store) {
-				var allocated = layer in layers && store[layers.__count];
+			var allocate:Function = function(store:Object):void {
+				var allocated:Boolean = layer in layers && store[layers.__count];
 				if (!allocated) {
 					layers.__count = store.push([]) - 1;
 					layers[layer] = layers.__count;
@@ -328,36 +331,36 @@ package oneway.nn {
 			allocate(activation_sentences);
 			allocate(trace_sentences);
 			allocate(propagation_sentences);
-			var currentLayer = layers.__count;
+			var currentLayer:int = layers.__count;
 			
 			// get/reserve space in memory by creating a unique ID for a variablel
-			var getVar = function() {
-				var args = Array.prototype.slice.call(arguments);
+			var getVar:Function = function(...argList):Object {
+				var args:Array = Array.prototype.slice.call(argList);
 				
 				if (args.length == 1) {
 					if (args[0] == 'target') {
-						var id = 'target_' + targets.length;
+						var id:String = 'target_' + targets.length;
 						targets.push(varID);
 					}
 					else
-						var id = args[0];
+						id = args[0];
 					if (id in variables)
 						return variables[id];
 					return variables[id] = {value: 0, id: varID++};
 				}
 				else {
-					var extended = args.length > 2;
+					var extended:Boolean = args.length > 2;
 					if (extended)
-						var value = args.pop();
+						var value:* = args.pop();
 					
-					var unit = args.shift();
-					var prop = args.pop();
+					var unit:Object = args.shift();
+					var prop:String = args.pop();
 					
 					if (!extended)
-						var value = unit[prop];
+						value = unit[prop];
 					
-					var id = prop + '_';
-					for (var i = 0; i < args.length; i++)
+					id = prop + '_';
+					for (var i:int = 0; i < args.length; i++)
 						id += args[i] + '_';
 					id += unit.ID;
 					if (id in variables)
@@ -368,11 +371,11 @@ package oneway.nn {
 			};
 			
 			// build sentence
-			var buildSentence = function() {
-				var args = Array.prototype.slice.call(arguments);
-				var store = args.pop();
-				var sentence = '';
-				for (var i = 0; i < args.length; i++)
+			var buildSentence:Function = function(...argList):void {
+				var args:Array = Array.prototype.slice.call(argList);
+				var store:Object = args.pop();
+				var sentence:String = '';
+				for (var i:int = 0; i < args.length; i++)
 					if (typeof args[i] == 'string')
 						sentence += args[i];
 					else
@@ -382,8 +385,8 @@ package oneway.nn {
 			};
 			
 			// helper to check if an object is empty
-			var isEmpty = function(obj) {
-				for (var prop in obj) {
+			var isEmpty:Function = function(obj:Object):Boolean {
+				for (var prop:String in obj) {
 					if (obj.hasOwnProperty(prop))
 						return false;
 				}
@@ -391,27 +394,27 @@ package oneway.nn {
 			};
 			
 			// characteristics of the neuron
-			var noProjections = isEmpty(this.connections.projected);
-			var noGates = isEmpty(this.connections.gated);
-			var isInput = layer == 'input' ? true : isEmpty(this.connections.inputs);
-			var isOutput = layer == 'output' ? true : noProjections && noGates;
+			var noProjections:Boolean = isEmpty(this.connections.projected);
+			var noGates:Boolean = isEmpty(this.connections.gated);
+			var isInput:Boolean = layer == 'input' ? true : isEmpty(this.connections.inputs);
+			var isOutput:Boolean = layer == 'output' ? true : noProjections && noGates;
 			
 			// optimize neuron's behaviour
-			var rate = getVar('rate');
-			var activation = getVar(this, 'activation');
+			var rate:* = getVar('rate');
+			var activation:* = getVar(this, 'activation');
 			if (isInput)
 				inputs.push(activation.id);
 			else {
 				activation_sentences[currentLayer].push(store_activation);
 				trace_sentences[currentLayer].push(store_trace);
 				propagation_sentences[currentLayer].push(store_propagation);
-				var old = getVar(this, 'old');
-				var state = getVar(this, 'state');
-				var bias = getVar(this, 'bias');
+				var old:Number = getVar(this, 'old');
+				var state:int = getVar(this, 'state');
+				var bias:Number = getVar(this, 'bias');
 				if (this.selfconnection.gater)
-					var self_gain = getVar(this.selfconnection, 'gain');
+					var self_gain:* = getVar(this.selfconnection, 'gain');
 				if (this.selfconnected())
-					var self_weight = getVar(this.selfconnection, 'weight');
+					var self_weight:Number = getVar(this.selfconnection, 'weight');
 				buildSentence(old, ' = ', state, store_activation);
 				if (this.selfconnected())
 					if (this.selfconnection.gater)
@@ -420,26 +423,26 @@ package oneway.nn {
 						buildSentence(state, ' = ', self_weight, ' * ', state, ' + ', bias, store_activation);
 				else
 					buildSentence(state, ' = ', bias, store_activation);
-				for (var i in this.connections.inputs) {
-					var input = this.connections.inputs[i];
-					var input_activation = getVar(input.from, 'activation');
-					var input_weight = getVar(input, 'weight');
+				for (var i:String in this.connections.inputs) {
+					var input:Object = this.connections.inputs[i];
+					var input_activation:Function = getVar(input.from, 'activation');
+					var input_weight:Number = getVar(input, 'weight');
 					if (input.gater)
-						var input_gain = getVar(input, 'gain');
+						var input_gain:Number = getVar(input, 'gain');
 					if (this.connections.inputs[i].gater)
 						buildSentence(state, ' += ', input_activation, ' * ', input_weight, ' * ', input_gain, store_activation);
 					else
 						buildSentence(state, ' += ', input_activation, ' * ', input_weight, store_activation);
 				}
-				var derivative = getVar(this, 'derivative');
+				var derivative:Number = getVar(this, 'derivative');
 				switch (this.squash) {
 					case Neuron.squash.LOGISTIC: 
 						buildSentence(activation, ' = (1 / (1 + Math.exp(-', state, ')))', store_activation);
 						buildSentence(derivative, ' = ', activation, ' * (1 - ', activation, ')', store_activation);
 						break;
 					case Neuron.squash.TANH: 
-						var eP = getVar('aux');
-						var eN = getVar('aux_2');
+						var eP:Number = getVar('aux');
+						var eN:Number = getVar('aux_2');
 						buildSentence(eP, ' = Math.exp(', state, ')', store_activation);
 						buildSentence(eN, ' = 1 / ', eP, store_activation);
 						buildSentence(activation, ' = (', eP, ' - ', eN, ') / (', eP, ' + ', eN, ')', store_activation);
@@ -459,19 +462,19 @@ package oneway.nn {
 						break;
 				}
 				
-				for (var id in this.trace.extended) {
+				for (var id:String in this.trace.extended) {
 					// calculate extended elegibility traces in advance
-					var neuron = this.neighboors[id];
-					var influence = getVar('influences[' + neuron.ID + ']');
-					var neuron_old = getVar(neuron, 'old');
-					var initialized = false;
+					var neuron:Neuron = this.neighboors[id];
+					var influence:Number = getVar('influences[' + neuron.ID + ']');
+					var neuron_old:Number = getVar(neuron, 'old');
+					var initialized:Boolean = false;
 					if (neuron.selfconnection.gater == this) {
 						buildSentence(influence, ' = ', neuron_old, store_trace);
 						initialized = true;
 					}
-					for (var incoming in this.trace.influences[neuron.ID]) {
-						var incoming_weight = getVar(this.trace.influences[neuron.ID][incoming], 'weight');
-						var incoming_activation = getVar(this.trace.influences[neuron.ID][incoming].from, 'activation');
+					for (var incoming:String in this.trace.influences[neuron.ID]) {
+						var incoming_weight:Number = getVar(this.trace.influences[neuron.ID][incoming], 'weight');
+						var incoming_activation:Function = getVar(this.trace.influences[neuron.ID][incoming].from, 'activation');
 						
 						if (initialized)
 							buildSentence(influence, ' += ', incoming_weight, ' * ', incoming_activation, store_trace);
@@ -482,12 +485,12 @@ package oneway.nn {
 					}
 				}
 				
-				for (var i in this.connections.inputs) {
-					var input = this.connections.inputs[i];
+				for (i in this.connections.inputs) {
+					input = this.connections.inputs[i];
 					if (input.gater)
-						var input_gain = getVar(input, 'gain');
-					var input_activation = getVar(input.from, 'activation');
-					var trace = getVar(this, 'trace', 'elegibility', input.ID, this.trace.elegibility[input.ID]);
+						input_gain = getVar(input, 'gain');
+					input_activation = getVar(input.from, 'activation');
+					var trace:String = getVar(this, 'trace', 'elegibility', input.ID, this.trace.elegibility[input.ID]);
 					if (this.selfconnected()) {
 						if (this.selfconnection.gater) {
 							if (input.gater)
@@ -508,17 +511,17 @@ package oneway.nn {
 						else
 							buildSentence(trace, ' = ', input_activation, store_trace);
 					}
-					for (var id in this.trace.extended) {
+					for (id in this.trace.extended) {
 						// extended elegibility trace
-						var neuron = this.neighboors[id];
-						var influence = getVar('influences[' + neuron.ID + ']');
+						neuron = this.neighboors[id];
+						influence = getVar('influences[' + neuron.ID + ']');
 						
-						var trace = getVar(this, 'trace', 'elegibility', input.ID, this.trace.elegibility[input.ID]);
-						var xtrace = getVar(this, 'trace', 'extended', neuron.ID, input.ID, this.trace.extended[neuron.ID][input.ID]);
+						trace = getVar(this, 'trace', 'elegibility', input.ID, this.trace.elegibility[input.ID]);
+						var xtrace:Object = getVar(this, 'trace', 'extended', neuron.ID, input.ID, this.trace.extended[neuron.ID][input.ID]);
 						if (neuron.selfconnected())
-							var neuron_self_weight = getVar(neuron.selfconnection, 'weight');
+							var neuron_self_weight:Number = getVar(neuron.selfconnection, 'weight');
 						if (neuron.selfconnection.gater)
-							var neuron_self_gain = getVar(neuron.selfconnection, 'gain');
+							var neuron_self_gain:Number = getVar(neuron.selfconnection, 'gain');
 						if (neuron.selfconnected())
 							if (neuron.selfconnection.gater)
 								buildSentence(xtrace, ' = ', neuron_self_gain, ' * ', neuron_self_weight, ' * ', xtrace, ' + ', derivative, ' * ', trace, ' * ', influence, store_trace);
@@ -528,131 +531,131 @@ package oneway.nn {
 							buildSentence(xtrace, ' = ', derivative, ' * ', trace, ' * ', influence, store_trace);
 					}
 				}
-				for (var connection in this.connections.gated) {
-					var gated_gain = getVar(this.connections.gated[connection], 'gain');
+				for (var connection:* in this.connections.gated) {
+					var gated_gain:* = getVar(this.connections.gated[connection], 'gain');
 					buildSentence(gated_gain, ' = ', activation, store_activation);
 				}
 			}
 			if (!isInput) {
-				var responsibility = getVar(this, 'error', 'responsibility', this.error.responsibility);
+				var responsibility:* = getVar(this, 'error', 'responsibility', this.error.responsibility);
 				if (isOutput) {
-					var target = getVar('target');
+					var target:* = getVar('target');
 					buildSentence(responsibility, ' = ', target, ' - ', activation, store_propagation);
-					for (var id in this.connections.inputs) {
-						var input = this.connections.inputs[id];
-						var trace = getVar(this, 'trace', 'elegibility', input.ID, this.trace.elegibility[input.ID]);
-						var input_weight = getVar(input, 'weight');
+					for (id in this.connections.inputs) {
+						input = this.connections.inputs[id];
+						trace = getVar(this, 'trace', 'elegibility', input.ID, this.trace.elegibility[input.ID]);
+						input_weight = getVar(input, 'weight');
 						buildSentence(input_weight, ' += ', rate, ' * (', responsibility, ' * ', trace, ')', store_propagation);
 					}
 					outputs.push(activation.id);
 				}
 				else {
 					if (!noProjections && !noGates) {
-						var error = getVar('aux');
-						for (var id in this.connections.projected) {
-							var connection = this.connections.projected[id];
-							var neuron = connection.to;
-							var connection_weight = getVar(connection, 'weight');
-							var neuron_responsibility = getVar(neuron, 'error', 'responsibility', neuron.error.responsibility);
+						var error:* = getVar('aux');
+						for (id in this.connections.projected) {
+							connection = this.connections.projected[id];
+							neuron = connection.to;
+							var connection_weight:* = getVar(connection, 'weight');
+							var neuron_responsibility:* = getVar(neuron, 'error', 'responsibility', neuron.error.responsibility);
 							if (connection.gater) {
-								var connection_gain = getVar(connection, 'gain');
+								var connection_gain:* = getVar(connection, 'gain');
 								buildSentence(error, ' += ', neuron_responsibility, ' * ', connection_gain, ' * ', connection_weight, store_propagation);
 							}
 							else
 								buildSentence(error, ' += ', neuron_responsibility, ' * ', connection_weight, store_propagation);
 						}
-						var projected = getVar(this, 'error', 'projected', this.error.projected);
+						var projected:* = getVar(this, 'error', 'projected', this.error.projected);
 						buildSentence(projected, ' = ', derivative, ' * ', error, store_propagation);
 						buildSentence(error, ' = 0', store_propagation);
-						for (var id in this.trace.extended) {
-							var neuron = this.neighboors[id];
-							var influence = getVar('aux_2');
-							var neuron_old = getVar(neuron, 'old');
+						for (id in this.trace.extended) {
+							neuron = this.neighboors[id];
+							influence = getVar('aux_2');
+							neuron_old = getVar(neuron, 'old');
 							if (neuron.selfconnection.gater == this)
 								buildSentence(influence, ' = ', neuron_old, store_propagation);
 							else
 								buildSentence(influence, ' = 0', store_propagation);
-							for (var input in this.trace.influences[neuron.ID]) {
-								var connection = this.trace.influences[neuron.ID][input];
-								var connection_weight = getVar(connection, 'weight');
-								var neuron_activation = getVar(connection.from, 'activation');
+							for (input in this.trace.influences[neuron.ID]) {
+								connection = this.trace.influences[neuron.ID][input];
+								connection_weight = getVar(connection, 'weight');
+								var neuron_activation:* = getVar(connection.from, 'activation');
 								buildSentence(influence, ' += ', connection_weight, ' * ', neuron_activation, store_propagation);
 							}
-							var neuron_responsibility = getVar(neuron, 'error', 'responsibility', neuron.error.responsibility);
+							neuron_responsibility = getVar(neuron, 'error', 'responsibility', neuron.error.responsibility);
 							buildSentence(error, ' += ', neuron_responsibility, ' * ', influence, store_propagation);
 						}
-						var gated = getVar(this, 'error', 'gated', this.error.gated);
+						var gated:* = getVar(this, 'error', 'gated', this.error.gated);
 						buildSentence(gated, ' = ', derivative, ' * ', error, store_propagation);
 						buildSentence(responsibility, ' = ', projected, ' + ', gated, store_propagation);
-						for (var id in this.connections.inputs) {
-							var input = this.connections.inputs[id];
-							var gradient = getVar('aux');
-							var trace = getVar(this, 'trace', 'elegibility', input.ID, this.trace.elegibility[input.ID]);
+						for (id in this.connections.inputs) {
+							input = this.connections.inputs[id];
+							var gradient:* = getVar('aux');
+							trace = getVar(this, 'trace', 'elegibility', input.ID, this.trace.elegibility[input.ID]);
 							buildSentence(gradient, ' = ', projected, ' * ', trace, store_propagation);
-							for (var id in this.trace.extended) {
-								var neuron = this.neighboors[id];
-								var neuron_responsibility = getVar(neuron, 'error', 'responsibility', neuron.error.responsibility);
-								var xtrace = getVar(this, 'trace', 'extended', neuron.ID, input.ID, this.trace.extended[neuron.ID][input.ID]);
+							for (id in this.trace.extended) {
+								neuron = this.neighboors[id];
+								neuron_responsibility = getVar(neuron, 'error', 'responsibility', neuron.error.responsibility);
+								xtrace = getVar(this, 'trace', 'extended', neuron.ID, input.ID, this.trace.extended[neuron.ID][input.ID]);
 								buildSentence(gradient, ' += ', neuron_responsibility, ' * ', xtrace, store_propagation);
 							}
-							var input_weight = getVar(input, 'weight');
+							input_weight = getVar(input, 'weight');
 							buildSentence(input_weight, ' += ', rate, ' * ', gradient, store_propagation);
 						}
 						
 					}
 					else if (noGates) {
 						buildSentence(responsibility, ' = 0', store_propagation);
-						for (var id in this.connections.projected) {
-							var connection = this.connections.projected[id];
-							var neuron = connection.to;
-							var connection_weight = getVar(connection, 'weight');
-							var neuron_responsibility = getVar(neuron, 'error', 'responsibility', neuron.error.responsibility);
+						for (id in this.connections.projected) {
+							connection = this.connections.projected[id];
+							neuron = connection.to;
+							connection_weight = getVar(connection, 'weight');
+							neuron_responsibility = getVar(neuron, 'error', 'responsibility', neuron.error.responsibility);
 							if (connection.gater) {
-								var connection_gain = getVar(connection, 'gain');
+								connection_gain = getVar(connection, 'gain');
 								buildSentence(responsibility, ' += ', neuron_responsibility, ' * ', connection_gain, ' * ', connection_weight, store_propagation);
 							}
 							else
 								buildSentence(responsibility, ' += ', neuron_responsibility, ' * ', connection_weight, store_propagation);
 						}
 						buildSentence(responsibility, ' *= ', derivative, store_propagation);
-						for (var id in this.connections.inputs) {
-							var input = this.connections.inputs[id];
-							var trace = getVar(this, 'trace', 'elegibility', input.ID, this.trace.elegibility[input.ID]);
-							var input_weight = getVar(input, 'weight');
+						for (id in this.connections.inputs) {
+							input = this.connections.inputs[id];
+							trace = getVar(this, 'trace', 'elegibility', input.ID, this.trace.elegibility[input.ID]);
+							input_weight = getVar(input, 'weight');
 							buildSentence(input_weight, ' += ', rate, ' * (', responsibility, ' * ', trace, ')', store_propagation);
 						}
 					}
 					else if (noProjections) {
 						buildSentence(responsibility, ' = 0', store_propagation);
-						for (var id in this.trace.extended) {
-							var neuron = this.neighboors[id];
-							var influence = getVar('aux');
-							var neuron_old = getVar(neuron, 'old');
+						for (id in this.trace.extended) {
+							neuron = this.neighboors[id];
+							influence = getVar('aux');
+							neuron_old = getVar(neuron, 'old');
 							if (neuron.selfconnection.gater == this)
 								buildSentence(influence, ' = ', neuron_old, store_propagation);
 							else
 								buildSentence(influence, ' = 0', store_propagation);
-							for (var input in this.trace.influences[neuron.ID]) {
-								var connection = this.trace.influences[neuron.ID][input];
-								var connection_weight = getVar(connection, 'weight');
-								var neuron_activation = getVar(connection.from, 'activation');
+							for (input in this.trace.influences[neuron.ID]) {
+								connection = this.trace.influences[neuron.ID][input];
+								connection_weight = getVar(connection, 'weight');
+								neuron_activation = getVar(connection.from, 'activation');
 								buildSentence(influence, ' += ', connection_weight, ' * ', neuron_activation, store_propagation);
 							}
-							var neuron_responsibility = getVar(neuron, 'error', 'responsibility', neuron.error.responsibility);
+							neuron_responsibility = getVar(neuron, 'error', 'responsibility', neuron.error.responsibility);
 							buildSentence(responsibility, ' += ', neuron_responsibility, ' * ', influence, store_propagation);
 						}
 						buildSentence(responsibility, ' *= ', derivative, store_propagation);
-						for (var id in this.connections.inputs) {
-							var input = this.connections.inputs[id];
-							var gradient = getVar('aux');
+						for (id in this.connections.inputs) {
+							input = this.connections.inputs[id];
+							gradient = getVar('aux');
 							buildSentence(gradient, ' = 0', store_propagation);
-							for (var id in this.trace.extended) {
-								var neuron = this.neighboors[id];
-								var neuron_responsibility = getVar(neuron, 'error', 'responsibility', neuron.error.responsibility);
-								var xtrace = getVar(this, 'trace', 'extended', neuron.ID, input.ID, this.trace.extended[neuron.ID][input.ID]);
+							for (id in this.trace.extended) {
+								neuron = this.neighboors[id];
+								neuron_responsibility = getVar(neuron, 'error', 'responsibility', neuron.error.responsibility);
+								xtrace = getVar(this, 'trace', 'extended', neuron.ID, input.ID, this.trace.extended[neuron.ID][input.ID]);
 								buildSentence(gradient, ' += ', neuron_responsibility, ' * ', xtrace, store_propagation);
 							}
-							var input_weight = getVar(input, 'weight');
+							input_weight = getVar(input, 'weight');
 							buildSentence(input_weight, ' += ', rate, ' * ', gradient, store_propagation);
 						}
 					}

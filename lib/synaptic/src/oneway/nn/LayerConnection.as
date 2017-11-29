@@ -10,8 +10,16 @@ package oneway.nn {
 		public static function uid():int {
 			return connections++;
 		}
-		
-		public function LayerConnection(fromLayer:Layer, toLayer:Layer, type:String = null, weights:Array = null) {
+		public var ID:int;
+		public var from:Layer;
+		public var to:Layer;
+		public var selfconnection:Boolean;
+		public var type:String;
+		public var list:Array;
+		public var size:int;
+		public var gatedfrom:Array;
+		public var connections:Object;
+		public function LayerConnection(fromLayer:Layer, toLayer:Layer, type:String = null, weights:* = null) {
 			this.ID = LayerConnection.uid();
 			this.from = fromLayer;
 			this.to = toLayer;
@@ -30,13 +38,13 @@ package oneway.nn {
 			}
 			
 			if (this.type == Layer.connectionType.ALL_TO_ALL || this.type == Layer.connectionType.ALL_TO_ELSE) {
-				for (var here in this.from.list) {
-					for (var there in this.to.list) {
-						var from = this.from.list[here];
-						var to = this.to.list[there];
+				for (var here:String in this.from.list) {
+					for (var there:String in this.to.list) {
+						var from:Neuron = this.from.list[here];
+						var to:Neuron = this.to.list[there];
 						if (this.type == Layer.connectionType.ALL_TO_ELSE && from == to)
 							continue;
-						var connection = from.project(to, weights);
+						var connection:Object = from.project(to, weights);
 						
 						this.connections[connection.ID] = connection;
 						this.size = this.list.push(connection);
@@ -45,10 +53,10 @@ package oneway.nn {
 			}
 			else if (this.type == Layer.connectionType.ONE_TO_ONE) {
 				
-				for (var neuron in this.from.list) {
-					var from = this.from.list[neuron];
-					var to = this.to.list[neuron];
-					var connection = from.project(to, weights);
+				for (var neuron:String in this.from.list) {
+					from = this.from.list[neuron];
+					to = this.to.list[neuron];
+					connection = from.project(to, weights);
 					
 					this.connections[connection.ID] = connection;
 					this.size = this.list.push(connection);

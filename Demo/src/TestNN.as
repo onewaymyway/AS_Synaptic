@@ -1,6 +1,9 @@
 package  
 {
 	import oneway.nn.NetWork;
+	import oneway.nn.networks.HopField;
+	import oneway.nn.networks.Liquid;
+	import oneway.nn.networks.LSTM;
 	import oneway.nn.networks.Perceptron;
 	import oneway.nn.Neuron;
 	/**
@@ -14,6 +17,10 @@ package
 		{
 			Neuron;
 			NetWork;
+			HopField;
+			Liquid;
+			LSTM;
+			Perceptron;
 			testNet();
 		}
 		

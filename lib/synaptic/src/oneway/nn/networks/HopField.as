@@ -10,8 +10,8 @@ package oneway.nn.networks {
 	public class HopField extends NetWork {
 		
 		public function HopField(size:int) {
-			var inputLayer = new Layer(size);
-			var outputLayer = new Layer(size);
+			var inputLayer:Layer = new Layer(size);
+			var outputLayer:Layer = new Layer(size);
 			
 			inputLayer.project(outputLayer, Layer.connectionType.ALL_TO_ALL);
 			
@@ -21,19 +21,19 @@ package oneway.nn.networks {
 		
 		}
 		
-		public function learn(patterns) {
-			var set = [];
-			for (var p in patterns)
+		public function learn(patterns:*):* {
+			var set:Array = [];
+			for (var p:String in patterns)
 				set.push({input: patterns[p], output: patterns[p]});
 			
 			return this.trainer.train(set, {iterations: 500000, error: .00005, rate: 1});
 		}
 		
-		public function feed(pattern) {
-			var output = this.activate(pattern);
+		public function feed(pattern:Array):* {
+			var output:Array = this.activate(pattern);
 			
-			var pattern = [];
-			for (var i in output)
+			pattern = [];
+			for (var i:String in output)
 				pattern[i] = output[i] > .5 ? 1 : 0;
 			
 			return pattern;
