@@ -6,7 +6,7 @@ package oneway.nn {
 	 */
 	public class Neuron {
 		public static var neurons:int = 0;
-		public static var squash:Object = Squash;
+		//public static var squash:Object = Squash;
 		public static function uid():int {
 			return neurons++;
 		}
@@ -39,14 +39,14 @@ package oneway.nn {
 			this.old = 0;
 			this.activation = 0;
 			this.selfconnection = new Connection(this, this, 0); // weight = 0 -> not connected
-			this.squash = Neuron.squash.LOGISTIC;
+			this.squash = Squash.LOGISTIC;
 			this.neighboors = {};
 			this.bias = Math.random() * .2 - .1;
 		}
 		
-		public function activate(input:* = null):Number {
-			if (input != null) {
-				this.activation = input as Number;
+		public function activate(value:* = null):Number {
+			if (value != null) {
+				this.activation = value as Number;
 				this.derivative = 0;
 				this.bias = 0;
 				return this.activation;
@@ -436,11 +436,11 @@ package oneway.nn {
 				}
 				var derivative:Number = getVar(this, 'derivative');
 				switch (this.squash) {
-					case Neuron.squash.LOGISTIC: 
+					case Squash.LOGISTIC: 
 						buildSentence(activation, ' = (1 / (1 + Math.exp(-', state, ')))', store_activation);
 						buildSentence(derivative, ' = ', activation, ' * (1 - ', activation, ')', store_activation);
 						break;
-					case Neuron.squash.TANH: 
+					case Squash.TANH: 
 						var eP:Number = getVar('aux');
 						var eN:Number = getVar('aux_2');
 						buildSentence(eP, ' = Math.exp(', state, ')', store_activation);
@@ -448,15 +448,15 @@ package oneway.nn {
 						buildSentence(activation, ' = (', eP, ' - ', eN, ') / (', eP, ' + ', eN, ')', store_activation);
 						buildSentence(derivative, ' = 1 - (', activation, ' * ', activation, ')', store_activation);
 						break;
-					case Neuron.squash.IDENTITY: 
+					case Squash.IDENTITY: 
 						buildSentence(activation, ' = ', state, store_activation);
 						buildSentence(derivative, ' = 1', store_activation);
 						break;
-					case Neuron.squash.HLIM: 
+					case Squash.HLIM: 
 						buildSentence(activation, ' = +(', state, ' > 0)', store_activation);
 						buildSentence(derivative, ' = 1', store_activation);
 						break;
-					case Neuron.squash.RELU: 
+					case Squash.RELU: 
 						buildSentence(activation, ' = ', state, ' > 0 ? ', state, ' : 0', store_activation);
 						buildSentence(derivative, ' = ', state, ' > 0 ? 1 : 0', store_activation);
 						break;

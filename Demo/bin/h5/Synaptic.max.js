@@ -204,6 +204,10 @@ var Laya=window.Laya=(function(window,document){
 		function TestNN(){
 			Neuron;
 			NetWork;
+			HopField;
+			Liquid;
+			LSTM;
+			Perceptron;
 			this.testNet();
 		}
 
@@ -593,9 +597,9 @@ var Laya=window.Laya=(function(window,document){
 		__proto.project=function(unit,type,weights){
 			if (this.optimized)
 				this.optimized.reset();
-			if (unit instanceof NetWork)
+			if ((unit instanceof oneway.nn.NetWork ))
 				return this.layers.output.project(unit.layers.input,type,weights);
-			if (unit instanceof Layer)
+			if ((unit instanceof oneway.nn.Layer ))
 				return this.layers.output.project(unit,type,weights);
 			throw new Error('Invalid argument, you can only project connections to LAYERS and NETWORKS!');
 		}
@@ -674,8 +678,8 @@ var Laya=window.Laya=(function(window,document){
 			network.reset=function (){
 				if (that.optimized){
 					that.optimized=null;
-					that.activate=network.data.check_activation;
-					that.propagate=network.data.check_propagation;
+					that["activate"]=network.data.check_activation;
+					that["propagate"]=network.data.check_propagation;
 				}
 			}
 			this.optimized=network;
@@ -774,7 +778,7 @@ var Laya=window.Laya=(function(window,document){
 				neuron=neuron.neuron;
 				ids[neuron.ID]=i;
 				var copy={"trace":{elegibility:{},extended:{}},state:neuron.state,old:neuron.old,activation:neuron.activation,bias:neuron.bias,layer:list[i].layer};
-				copy.squash=neuron.squash==Neuron.squash.LOGISTIC ? 'LOGISTIC' :neuron.squash==Neuron.squash.TANH ? 'TANH' :neuron.squash==Neuron.squash.IDENTITY ? 'IDENTITY' :neuron.squash==Neuron.squash.HLIM ? 'HLIM' :neuron.squash==Neuron.squash.RELU ? 'RELU' :null;
+				copy.squash=neuron.squash==Squash.LOGISTIC ? 'LOGISTIC' :neuron.squash==Squash.TANH ? 'TANH' :neuron.squash==Squash.IDENTITY ? 'IDENTITY' :neuron.squash==Squash.HLIM ? 'HLIM' :neuron.squash==Squash.RELU ? 'RELU' :null;
 				neurons.push(copy);
 			}
 			for (i=0;i < list.length;i++){
@@ -793,8 +797,7 @@ var Laya=window.Laya=(function(window,document){
 		}
 
 		__proto.toDot=function(edgeConnection){
-			if (!typeof edgeConnection)
-				edgeConnection=false;
+			(edgeConnection===void 0)&& (edgeConnection=false);
 			var code='digraph nn {\n    rankdir = BT\n';
 			var layers=[this.layers.input].concat(this.layers.hidden,this.layers.output);
 			for (var i=0;i < layers.length;i++){
@@ -877,7 +880,7 @@ var Laya=window.Laya=(function(window,document){
 			workerOptions.error=workerOptions.error ||.005;
 			workerOptions.cost=workerOptions.cost || null;
 			workerOptions.crossValidate=workerOptions.crossValidate || null;
-			var costFunction='// REPLACED BY WORKER\nvar cost = '+(options && options.cost || this.cost || Trainer.cost.MSE)+';\n';
+			var costFunction='// REPLACED BY WORKER\nvar cost = '+(options && options.cost || this.cost || Cost.MSE)+';\n';
 			var workerFunction=oneway.nn.NetWork.getWorkerSharedFunctions();
 			workerFunction=workerFunction.replace(/var cost=options && options\.cost \|\| this\.cost \|\| Trainer\.cost\.MSE;/g,costFunction);
 			workerFunction=workerFunction.replace('return results;','postMessage({action: "done", message: results, memoryBuffer: F}, [F.buffer]);');
@@ -926,7 +929,7 @@ var Laya=window.Laya=(function(window,document){
 				neuron.old=config.old;
 				neuron.activation=config.activation;
 				neuron.bias=config.bias;
-				neuron.squash=config.squash in Neuron.squash ? Neuron.squash[config.squash] :Neuron.squash.LOGISTIC;
+				neuron.squash=config.squash in Squash ? Squash[config.squash] :Squash.LOGISTIC;
 				neurons.push(neuron);
 				if (config.layer=='input')
 					layers.input.add(neuron);
@@ -984,7 +987,7 @@ var Laya=window.Laya=(function(window,document){
 			this.old=0;
 			this.activation=0;
 			this.selfconnection=new Connection(this,this,0);
-			this.squash=oneway.nn.Neuron.squash.LOGISTIC;
+			this.squash=Squash.LOGISTIC;
 			this.neighboors={};
 			this.bias=Math.random()*.2-.1;
 		}
@@ -1290,11 +1293,11 @@ var Laya=window.Laya=(function(window,document){
 				};
 				var derivative=getVar(this,'derivative');
 				switch (this.squash){
-					case oneway.nn.Neuron.squash.LOGISTIC:
+					case Squash.LOGISTIC:
 						buildSentence(activation,' = (1 / (1 + Math.exp(-',state,')))',store_activation);
 						buildSentence(derivative,' = ',activation,' * (1 - ',activation,')',store_activation);
 						break ;
-					case oneway.nn.Neuron.squash.TANH:;
+					case Squash.TANH:;
 						var eP=getVar('aux');
 						var eN=getVar('aux_2');
 						buildSentence(eP,' = Math.exp(',state,')',store_activation);
@@ -1302,15 +1305,15 @@ var Laya=window.Laya=(function(window,document){
 						buildSentence(activation,' = (',eP,' - ',eN,') / (',eP,' + ',eN,')',store_activation);
 						buildSentence(derivative,' = 1 - (',activation,' * ',activation,')',store_activation);
 						break ;
-					case oneway.nn.Neuron.squash.IDENTITY:
+					case Squash.IDENTITY:
 						buildSentence(activation,' = ',state,store_activation);
 						buildSentence(derivative,' = 1',store_activation);
 						break ;
-					case oneway.nn.Neuron.squash.HLIM:
+					case Squash.HLIM:
 						buildSentence(activation,' = +(',state,' > 0)',store_activation);
 						buildSentence(derivative,' = 1',store_activation);
 						break ;
-					case oneway.nn.Neuron.squash.RELU:
+					case Squash.RELU:
 						buildSentence(activation,' = ',state,' > 0 ? ',state,' : 0',store_activation);
 						buildSentence(derivative,' = ',state,' > 0 ? 1 : 0',store_activation);
 						break ;
@@ -1521,9 +1524,6 @@ var Laya=window.Laya=(function(window,document){
 		}
 
 		Neuron.neurons=0;
-		__static(Neuron,
-		['squash',function(){return this.squash=Squash;}
-		]);
 		return Neuron;
 	})()
 
@@ -1625,10 +1625,11 @@ var Laya=window.Laya=(function(window,document){
 		var __proto=Trainer.prototype;
 		__proto.train=function(set,options){
 			var error=1;
-			var iterations=bucketSize=0;
+			var bucketSize=0;
+			var iterations=0;
 			var abort=false;
-			var currentRate;
-			var cost=options && options.cost || this.cost || oneway.nn.Trainer.cost.MSE;
+			var currentRate=NaN;
+			var cost=options && options.cost || this.cost || Cost.MSE;
 			var crossValidate=false,testSet,trainSet;
 			var start=NNTools.now();
 			if (options){
@@ -1658,7 +1659,7 @@ var Laya=window.Laya=(function(window,document){
 			}
 			currentRate=this.rate;
 			if ((this.rate instanceof Array)){
-				var bucketSize=Math.floor(this.iterations / this.rate.length);
+				bucketSize=Math.floor(this.iterations / this.rate.length);
 			}
 			if (crossValidate){
 				var numTrain=Math.ceil((1-this.crossValidate.testSize)*set.length);
@@ -1732,7 +1733,7 @@ var Laya=window.Laya=(function(window,document){
 		__proto.test=function(set,options){
 			var error=0;
 			var input,output,target;
-			var cost=options && options.cost || this.cost || oneway.nn.Trainer.cost.MSE;
+			var cost=options && options.cost || this.cost || Cost.MSE;
 			var start=NNTools.now();
 			for (var i=0;i < set.length;i++){
 				input=set[i].input;
@@ -1746,6 +1747,7 @@ var Laya=window.Laya=(function(window,document){
 		}
 
 		__proto.workerTrain=function(set,callback,options,suppressWarning){
+			(suppressWarning===void 0)&& (suppressWarning=false);
 			if (!suppressWarning){
 				console.warn('Deprecated: do not use `workerTrain`, use `trainAsync` instead.')
 			};
@@ -1779,7 +1781,7 @@ var Laya=window.Laya=(function(window,document){
 		__proto.XOR=function(options){
 			if (this.network.inputs()!=2 || this.network.outputs()!=1)
 				throw new Error('Incompatible network (2 inputs, 1 output)');
-			var defaults={iterations:100000,log:false,shuffle:true,cost:oneway.nn.Trainer.cost.MSE};
+			var defaults={iterations:100000,log:false,shuffle:true,cost:Cost.MSE};
 			if (options)
 				for (var i in options)
 			defaults[i]=options[i];
@@ -1797,8 +1799,8 @@ var Laya=window.Laya=(function(window,document){
 			var rate=options.rate ||.1;
 			var log=options.log || 0;
 			var schedule=options.schedule || {};
-			var cost=options.cost || this.cost || oneway.nn.Trainer.cost.CROSS_ENTROPY;
-			var trial,correct,i,j,success;
+			var cost=options.cost || this.cost || Cost.CROSS_ENTROPY;
+			var trial=0,correct=0,i=0,j=0,success=0;
 			trial=correct=i=j=success=0;
 			var error=1,symbols=targets.length+distractors.length+prompts.length;
 			var noRepeat=function (range,avoid){
@@ -1832,7 +1834,7 @@ var Laya=window.Laya=(function(window,document){
 					sequence[positions[i]]=targets[indexes[i]];
 					sequence.push(prompts[i]);
 				};
-				var distractorsCorrect;
+				var distractorsCorrect=0;
 				var targetsCorrect=distractorsCorrect=0;
 				error=0;
 				for (i=0;i < length;i++){
@@ -1882,7 +1884,7 @@ var Laya=window.Laya=(function(window,document){
 			var criterion=options.error ||.05;
 			var rate=options.rate ||.1;
 			var log=options.log || 500;
-			var cost=options.cost || this.cost || oneway.nn.Trainer.cost.CROSS_ENTROPY;
+			var cost=options.cost || this.cost || Cost.CROSS_ENTROPY;
 			var Node=function (){
 				_$this.paths=[];
 			};
@@ -1895,7 +1897,7 @@ var Laya=window.Laya=(function(window,document){
 					var index=Math.random()*this.paths.length | 0;
 					return this.paths[index];
 					},test:function (value){
-					for (var i in this.paths)
+					for (var i=0 in this.paths)
 					if (this.paths[i].value==value)
 						return this.paths[i];
 					return false;
@@ -2003,7 +2005,7 @@ var Laya=window.Laya=(function(window,document){
 		__proto.timingTask=function(options){
 			if (this.network.inputs()!=2 || this.network.outputs()!=1)
 				throw new Error('Invalid Network: must have 2 inputs and one output');
-			if (typeof options=='undefined')
+			if (!options)
 				options={};
 			function getSamples (trainingSize,testSize){
 				var size=trainingSize+testSize;
@@ -2035,7 +2037,7 @@ var Laya=window.Laya=(function(window,document){
 			var error=options.error ||.005;
 			var rate=options.rate || [.03,.02];
 			var log=options.log===false ? false :options.log || 10;
-			var cost=options.cost || this.cost || oneway.nn.Trainer.cost.MSE;
+			var cost=options.cost || this.cost || Cost.MSE;
 			var trainingSamples=options.trainSamples || 7000;
 			var testSamples=options.trainSamples || 1000;
 			var samples=getSamples(trainingSamples,testSamples);
@@ -2044,15 +2046,170 @@ var Laya=window.Laya=(function(window,document){
 		}
 
 		Trainer.shuffleInplace=function(o){
-			for (var j=0,x=0,i=o.length;i;j=Math.floor(Math.random()*i),x=o[--i],o[i]=o[j],o[j]=x);
+			for (var j=0,x=0,i=o.length;i;j=Math.floor(Math.random()*i),x=o[--i],o[i]=o[j],o[j]=x){}
 			return o;
 		}
 
-		__static(Trainer,
-		['cost',function(){return this.cost=Cost;}
-		]);
 		return Trainer;
 	})()
+
+
+	/**
+	*...
+	*@author ww
+	*/
+	//class oneway.nn.networks.HopField extends oneway.nn.NetWork
+	var HopField=(function(_super){
+		function HopField(size){
+			HopField.__super.call(this);
+			var inputLayer=new Layer(size);
+			var outputLayer=new Layer(size);
+			inputLayer.project(outputLayer,Layer.connectionType.ALL_TO_ALL);
+			this.set({input:inputLayer,hidden:[],output:outputLayer});
+			this.trainer=new Trainer(this);
+		}
+
+		__class(HopField,'oneway.nn.networks.HopField',_super);
+		var __proto=HopField.prototype;
+		__proto.learn=function(patterns){
+			var set=[];
+			for (var p in patterns)
+			set.push({input:patterns[p],output:patterns[p]});
+			return this.trainer.train(set,{iterations:500000,error:.00005,rate:1});
+		}
+
+		__proto.feed=function(pattern){
+			var output=this.activate(pattern);
+			pattern=[];
+			for (var i in output)
+			pattern[i]=output[i] >.5 ? 1 :0;
+			return pattern;
+		}
+
+		return HopField;
+	})(NetWork)
+
+
+	/**
+	*...
+	*@author ww
+	*/
+	//class oneway.nn.networks.Liquid extends oneway.nn.NetWork
+	var Liquid=(function(_super){
+		function Liquid(inputs,hidden,outputs,connections,gates){
+			Liquid.__super.call(this);
+			var inputLayer=new Layer(inputs);
+			var hiddenLayer=new Layer(hidden);
+			var outputLayer=new Layer(outputs);
+			var neurons=hiddenLayer.neurons();
+			var connectionList=[];
+			for (var i=0;i < connections;i++){
+				var from=Math.random()*neurons.length | 0;
+				var to=Math.random()*neurons.length | 0;
+				var connection=neurons[from].project(neurons[to]);
+				connectionList.push(connection);
+			}
+			for (var j=0;j < gates;j++){
+				var gater=Math.random()*neurons.length | 0;
+				connection=Math.random()*connectionList.length | 0;
+				neurons[gater].gate(connectionList[connection]);
+			}
+			inputLayer.project(hiddenLayer);
+			hiddenLayer.project(outputLayer);
+			this.set({input:inputLayer,hidden:[hiddenLayer],output:outputLayer});
+		}
+
+		__class(Liquid,'oneway.nn.networks.Liquid',_super);
+		return Liquid;
+	})(NetWork)
+
+
+	/**
+	*...
+	*@author ww
+	*/
+	//class oneway.nn.networks.LSTM extends oneway.nn.NetWork
+	var LSTM=(function(_super){
+		function LSTM(__argList){
+			LSTM.__super.call(this);
+			var argList=arguments;
+			var args=Array.prototype.slice.call(argList);
+			if (args.length < 3)
+				throw new Error("not enough layers (minimum 3) !!");
+			var last=args.pop();
+			var outputs=0;
+			var option={peepholes:Layer.connectionType.ALL_TO_ALL,hiddenToHidden:false,outputToHidden:false,outputToGates:false,inputToOutput:true};
+			if (typeof last !='number'){
+				outputs=args.pop();
+				if (last.hasOwnProperty('peepholes'))
+					option.peepholes=last.peepholes;
+				if (last.hasOwnProperty('hiddenToHidden'))
+					option.hiddenToHidden=last.hiddenToHidden;
+				if (last.hasOwnProperty('outputToHidden'))
+					option.outputToHidden=last.outputToHidden;
+				if (last.hasOwnProperty('outputToGates'))
+					option.outputToGates=last.outputToGates;
+				if (last.hasOwnProperty('inputToOutput'))
+					option.inputToOutput=last.inputToOutput;
+			}
+			else {
+				outputs=last;
+			};
+			var inputs=args.shift();
+			var layers=args;
+			var inputLayer=new Layer(inputs);
+			var hiddenLayers=[];
+			var outputLayer=new Layer(outputs);
+			var previous=null;
+			for (var i=0;i < layers.length;i++){
+				var size=layers[i];
+				var inputGate=new Layer(size).set({bias:1});
+				var forgetGate=new Layer(size).set({bias:1});
+				var memoryCell=new Layer(size);
+				var outputGate=new Layer(size).set({bias:1});
+				hiddenLayers.push(inputGate);
+				hiddenLayers.push(forgetGate);
+				hiddenLayers.push(memoryCell);
+				hiddenLayers.push(outputGate);
+				var input=inputLayer.project(memoryCell);
+				inputLayer.project(inputGate);
+				inputLayer.project(forgetGate);
+				inputLayer.project(outputGate);
+				if (previous !=null){
+					var cell=previous.project(memoryCell);
+					previous.project(inputGate);
+					previous.project(forgetGate);
+					previous.project(outputGate);
+				};
+				var output=memoryCell.project(outputLayer);
+				var self=memoryCell.project(memoryCell);
+				if (option.hiddenToHidden)
+					memoryCell.project(memoryCell,Layer.connectionType.ALL_TO_ELSE);
+				if (option.outputToHidden)
+					outputLayer.project(memoryCell);
+				if (option.outputToGates){
+					outputLayer.project(inputGate);
+					outputLayer.project(outputGate);
+					outputLayer.project(forgetGate);
+				}
+				memoryCell.project(inputGate,option.peepholes);
+				memoryCell.project(forgetGate,option.peepholes);
+				memoryCell.project(outputGate,option.peepholes);
+				inputGate.gate(input,Layer.gateType.INPUT);
+				forgetGate.gate(self,Layer.gateType.ONE_TO_ONE);
+				outputGate.gate(output,Layer.gateType.OUTPUT);
+				if (previous !=null)
+					inputGate.gate(cell,Layer.gateType.INPUT);
+				previous=memoryCell;
+			}
+			if (option.inputToOutput)
+				inputLayer.project(outputLayer);
+			this.set({input:inputLayer,hidden:hiddenLayers,output:outputLayer});
+		}
+
+		__class(LSTM,'oneway.nn.networks.LSTM',_super);
+		return LSTM;
+	})(NetWork)
 
 
 	/**
@@ -2098,5 +2255,5 @@ var Laya=window.Laya=(function(window,document){
 
 
 /*
-1 file:///D:/machinelearning/AS_Synaptic.git/trunk/lib/synaptic/src/oneway/nn/NetWork.as (469):warning:Worker This variable is not defined.
+1 file:///D:/machinelearning/AS_Synaptic.git/trunk/lib/synaptic/src/oneway/nn/NetWork.as (467):warning:Worker This variable is not defined.
 */

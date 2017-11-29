@@ -10,8 +10,7 @@ package oneway.nn {
 			}
 			return o;
 		}
-		public static var cost:Object = Cost;
-		
+	
 		public var network:NetWork;
 		public var rate:*;
 		public var iterations:int;
@@ -36,7 +35,7 @@ package oneway.nn {
 			var iterations:int = 0;
 			var abort:Boolean = false;
 			var currentRate:Number;
-			var cost:Function = options && options.cost || this.cost || Trainer.cost.MSE;
+			var cost:Function = options && options.cost || this.cost || Cost.MSE;
 			var crossValidate:Boolean = false, testSet:Array, trainSet:Array;
 			
 			var start:Number = NNTools.now();
@@ -159,7 +158,7 @@ package oneway.nn {
 		public function test(set:Array, options:Object = null):Object {
 			var error:Number = 0;
 			var input:Array, output:Array, target:Array;
-			var cost:Function = options && options.cost || this.cost || Trainer.cost.MSE;
+			var cost:Function = options && options.cost || this.cost || Cost.MSE;
 			
 			var start:Number = NNTools.now();
 			
@@ -226,7 +225,7 @@ package oneway.nn {
 			if (this.network.inputs() != 2 || this.network.outputs() != 1)
 				throw new Error('Incompatible network (2 inputs, 1 output)');
 			
-			var defaults:Object = {iterations: 100000, log: false, shuffle: true, cost: Trainer.cost.MSE};
+			var defaults:Object = {iterations: 100000, log: false, shuffle: true, cost: Cost.MSE};
 			
 			if (options)
 				for (var i:String in options)
@@ -247,7 +246,7 @@ package oneway.nn {
 			var rate:Number = options.rate || .1;
 			var log:Number = options.log || 0;
 			var schedule:Object = options.schedule || {};
-			var cost:Function = options.cost || this.cost || Trainer.cost.CROSS_ENTROPY;
+			var cost:Function = options.cost || this.cost || Cost.CROSS_ENTROPY;
 			
 			var trial:int, correct:int, i:int, j:int, success:int;
 			trial = correct = i = j = success = 0;
@@ -354,7 +353,7 @@ package oneway.nn {
 			var criterion:Number = options.error || .05;
 			var rate:Number = options.rate || .1;
 			var log:int = options.log || 500;
-			var cost:Function = options.cost || this.cost || Trainer.cost.CROSS_ENTROPY;
+			var cost:Function = options.cost || this.cost || Cost.CROSS_ENTROPY;
 			
 			// gramar node
 			var Node:* = function():void {
@@ -552,7 +551,7 @@ package oneway.nn {
 			var error:Number = options.error || .005;
 			var rate:Array = options.rate || [.03, .02];
 			var log:* = options.log === false ? false : options.log || 10;
-			var cost:Function = options.cost || this.cost || Trainer.cost.MSE;
+			var cost:Function = options.cost || this.cost || Cost.MSE;
 			var trainingSamples:Number = options.trainSamples || 7000;
 			var testSamples:Number = options.trainSamples || 1000;
 			

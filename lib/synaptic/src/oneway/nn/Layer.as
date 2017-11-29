@@ -8,8 +8,17 @@ package oneway.nn {
 		public static var connectionType:Object = {ALL_TO_ALL: "ALL TO ALL", ONE_TO_ONE: "ONE TO ONE", ALL_TO_ELSE: "ALL TO ELSE"};
 		public static var gateType:Object = {INPUT: "INPUT", OUTPUT: "OUTPUT", ONE_TO_ONE: "ONE TO ONE"};
 		
+		/**
+		 * 大小
+		 */
 		public var size:int;
+		/**
+		 * Neuron List
+		 */
 		public var list:Array;
+		/**
+		 * 连接的列表
+		 */
 		public var connectedTo:Array;
 		
 		public function Layer(size:int=0) {
@@ -82,7 +91,7 @@ package oneway.nn {
 		
 		}
 		
-		public function gate(connection:Object, type:String):void {
+		public function gate(connection:LayerConnection, type:String):void {
 			
 			if (type == Layer.gateType.INPUT) {
 				if (connection.to.size != this.size)

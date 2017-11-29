@@ -46,7 +46,7 @@ package oneway.nn {
 				neuron.old = config.old;
 				neuron.activation = config.activation;
 				neuron.bias = config.bias;
-				neuron.squash = config.squash in Neuron.squash ? Neuron.squash[config.squash] : Neuron.squash.LOGISTIC;
+				neuron.squash = config.squash in Squash ? Squash[config.squash] : Squash.LOGISTIC;
 				neurons.push(neuron);
 				
 				if (config.layer == 'input')
@@ -337,7 +337,7 @@ package oneway.nn {
 				
 				var copy:Object = {"trace": {elegibility: {}, extended: {}}, state: neuron.state, old: neuron.old, activation: neuron.activation, bias: neuron.bias, layer: list[i].layer};
 				
-				copy.squash = neuron.squash == Neuron.squash.LOGISTIC ? 'LOGISTIC' : neuron.squash == Neuron.squash.TANH ? 'TANH' : neuron.squash == Neuron.squash.IDENTITY ? 'IDENTITY' : neuron.squash == Neuron.squash.HLIM ? 'HLIM' : neuron.squash == Neuron.squash.RELU ? 'RELU' : null;
+				copy.squash = neuron.squash == Squash.LOGISTIC ? 'LOGISTIC' : neuron.squash == Squash.TANH ? 'TANH' : neuron.squash == Squash.IDENTITY ? 'IDENTITY' : neuron.squash == Squash.HLIM ? 'HLIM' : neuron.squash == Squash.RELU ? 'RELU' : null;
 				
 				neurons.push(copy);
 			}
@@ -465,7 +465,7 @@ package oneway.nn {
 			workerOptions.crossValidate = workerOptions.crossValidate || null;
 			
 			// Cost function might be different for each worker
-			var costFunction:String = '// REPLACED BY WORKER\nvar cost = ' + (options && options.cost || this.cost || Trainer.cost.MSE) + ';\n';
+			var costFunction:String = '// REPLACED BY WORKER\nvar cost = ' + (options && options.cost || this.cost || Cost.MSE) + ';\n';
 			var workerFunction:* = NetWork.getWorkerSharedFunctions();
 			workerFunction = workerFunction.replace(/var cost = options && options\.cost \|\| this\.cost \|\| Trainer\.cost\.MSE;/g, costFunction);
 			
