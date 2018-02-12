@@ -492,7 +492,7 @@ package oneway.nn {
 			var blob:* = __JS__("new Blob([workerSourceCode])");
 			var blobURL:* = __JS__("window.URL.createObjectURL(blob)");
 			
-			return new Worker(blobURL);
+			return __JS__("new Worker(blobURL)");
 		}
 		
 		public function clone():NetWork {

@@ -15,18 +15,57 @@ package oneway.nn {
 			return {"neurons": neurons, "connections": Connection.connections}
 		}
 		
+		/**
+		 * ID
+		 */
 		public var ID:int;
+		/**
+		 * {"inputs": {}, "projected": {}, "gated": {}}
+		 */
 		public var connections:Object;
+		/**
+		 * {"responsibility": 0, "projected": 0, "gated": 0}
+		 */
 		public var error:Object;
+		/**
+		 * {"elegibility": {}, "extended": {}, "influences": {}}
+		 */
 		public var trace:Object;
+		/**
+		 * 当前值
+		 */
 		public var state:int;
+		/**
+		 * 之前的值
+		 */
 		public var old:Number;
+		/**
+		 * 输出值
+		 */
 		public var activation:Number;
+		/**
+		 * 
+		 */
 		public var selfconnection:Connection;
+		/**
+		 * 激活函数
+		 */
 		public var squash:Function;
+		/**
+		 * 
+		 */
 		public var neighboors:Object;
+		/**
+		 * 偏移
+		 */
 		public var bias:Number;
+		/**
+		 * 导数
+		 */
 		public var derivative:Number;
+		/**
+		 * 名字
+		 */
 		public var label:String;
 		
 		public function Neuron() {
